@@ -1,0 +1,15 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+storage/sessions/*
+!storage/sessions/.gitkeep
+storage/.hook-audit.jsonl
+.venv/
+.DS_Store
+.vscode/
+dist/
+build/
+*.egg-info/
+node_modules/
