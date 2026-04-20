@@ -1,0 +1,3 @@
+I have attached a collection of project documents that describe the current event data structure, ingestion flow, deployment process, and target analytics requirements.
+
+Please use these files to understand the current source structure, infer the transformation requirements, design the target Apache Iceberg table mapping, generate a Python transformation implementation outline, produce a transformation summary, and clearly distinguish verified information from assumptions or missing details.

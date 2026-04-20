@@ -44,7 +44,7 @@ def build_runtime_mcp_config(
         local_insights_server: McpStdioServerConfig = {
             "command": sys.executable,
             "args": [str(settings.local_insights_server_path)],
-            "env": {"DATA_TRANSFORM_AGENT_PROJECT_ROOT": str(settings.project_root)},
+            "env": {"PROJECT_ROOT": str(settings.project_root)},
         }
         servers["local_insights"] = local_insights_server
         allowed_tools.append("mcp__local_insights__*")

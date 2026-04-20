@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | Data Transformation Agent</title>
+    <style>
+      :root {
+        --bg: #f4f6f7;
+        --surface: rgba(255,255,255,0.92);
+        --ink: #16222b;
+        --muted: #647481;
+        --line: rgba(22,34,43,0.12);
+        --accent: #0c6c5d;
+        --shadow: 0 22px 56px rgba(24,38,48,0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at top left, rgba(12,108,93,0.08), transparent 24%),
+          linear-gradient(180deg, #fafbfb 0%, var(--bg) 100%);
+        color: var(--ink);
+        font-family: Manrope, system-ui, sans-serif;
+      }
+      .card {
+        width: min(420px, 100%);
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      h1 { margin: 0 0 10px; font-size: 1.8rem; letter-spacing: -0.04em; }
+      p { margin: 0 0 20px; color: var(--muted); line-height: 1.55; }
+      label { display: grid; gap: 8px; margin-bottom: 14px; font-size: 0.94rem; }
+      input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        font: inherit;
+      }
+      button {
+        width: 100%;
+        border: none;
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: linear-gradient(180deg, var(--accent), #0b574b);
+        color: white;
+        font: inherit;
+        cursor: pointer;
+      }
+      .error {
+        margin-bottom: 14px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(163,92,25,0.1);
+        color: #8a4f18;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Sign in</h1>
+      <p>Enter the static username and password from your `.env` to access the Data Transformation Agent.</p>
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+      <form method="post">
+        <label>
+          <span>Username</span>
+          <input type="text" name="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Continue</button>
+      </form>
+    </main>
+  </body>
+</html>

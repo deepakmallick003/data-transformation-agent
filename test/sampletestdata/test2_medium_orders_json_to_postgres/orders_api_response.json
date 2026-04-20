@@ -1,0 +1,71 @@
+{
+  "batchId": "ORD-2026-04-19-A",
+  "generatedAt": "2026-04-19T08:30:00Z",
+  "orders": [
+    {
+      "orderId": "A10001",
+      "customer": {
+        "id": "C-001",
+        "name": "Alice Johnson",
+        "email": "alice.johnson@example.com"
+      },
+      "shippingAddress": {
+        "country": "UK",
+        "city": "Reading"
+      },
+      "items": [
+        {
+          "sku": "BK-100",
+          "quantity": 2,
+          "unitPrice": 12.5
+        },
+        {
+          "sku": "PN-200",
+          "quantity": 1,
+          "unitPrice": 4.0
+        }
+      ],
+      "status": "shipped",
+      "createdAt": "2026-04-18T10:05:00Z",
+      "discountCode": null
+    },
+    {
+      "orderId": "A10002",
+      "customer": {
+        "id": "C-002",
+        "name": "Bob Smith",
+        "email": "bob.smith@example.com"
+      },
+      "shippingAddress": {
+        "country": "India",
+        "city": "Pune"
+      },
+      "items": [
+        {
+          "sku": "NB-300",
+          "quantity": 3,
+          "unitPrice": 7.25
+        }
+      ],
+      "status": "processing",
+      "createdAt": "2026-04-18T11:15:00Z",
+      "discountCode": "APRIL10"
+    },
+    {
+      "orderId": "A10003",
+      "customer": {
+        "id": "C-003",
+        "name": "Carla Mendes",
+        "email": null
+      },
+      "shippingAddress": {
+        "country": "Portugal",
+        "city": "Lisbon"
+      },
+      "items": [],
+      "status": "cancelled",
+      "createdAt": "2026-04-18T12:45:00Z",
+      "discountCode": null
+    }
+  ]
+}

@@ -1,9 +1,13 @@
 ---
 name: authority-check
-description: Identify authority, sign-off, evidence packaging, and delivery-readiness needs for a transformation proposal. Use when approvals, operational readiness, or implementation sign-off are part of the task.
+description: Legacy compatibility wrapper for approval-and-evidence. Use the newer capability-oriented skill for ongoing work.
 ---
 
 # Authority Check
+
+This skill remains for backward compatibility.
+
+Prefer `approval-and-evidence`.
 
 When this skill is relevant:
 

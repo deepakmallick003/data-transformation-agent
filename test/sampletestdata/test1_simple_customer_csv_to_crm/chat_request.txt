@@ -1,0 +1,3 @@
+I have attached a customer CSV extract, a target CRM contract, and business delivery notes.
+
+Please analyse the source and target, identify the mapping rules, generate a Python transformation script, prepare a transformation summary, and highlight any assumptions or missing details that still need clarification before production use.

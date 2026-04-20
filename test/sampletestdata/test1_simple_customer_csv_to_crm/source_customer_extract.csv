@@ -1,0 +1,7 @@
+customer_id,full_name,email,status,country,annual_spend,last_order_date
+1001,Alice Johnson,alice.johnson@example.com,active,UK,1250.50,2026-03-28
+1002,Bob Smith,bob.smith@example.com,inactive,UK,120.00,2025-08-14
+1003,Carla Mendes,carla.mendes@example.com,active,Portugal,980.75,2026-04-01
+1004,David Lee,david.lee@example.com,pending,UK,0.00,
+1005,Esha Patel,esha.patel@example.com,active,India,5400.00,2026-02-11
+1006,Meera Khan,,active,UK,320.00,2026-01-17

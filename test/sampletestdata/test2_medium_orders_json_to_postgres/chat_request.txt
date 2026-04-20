@@ -1,0 +1,3 @@
+I have attached a nested orders API payload, a target Postgres staging schema, and mapping expectations.
+
+Please analyse the source structure, map it into the target tables, generate a Python-first transformation script, explain the flattening logic, propose validation checks, and call out any gaps or assumptions that still need clarification.

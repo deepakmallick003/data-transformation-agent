@@ -1,9 +1,16 @@
 ---
 name: transformation-discovery
-description: Establish a clear transformation brief from uploaded files, session notes, architecture material, and source or target descriptions. Use when the request is still being understood and keep transformation-understanding.md accurate, concrete, and decision-oriented.
+description: Legacy compatibility wrapper for source-analysis and target-contract-analysis. Use the newer capability-oriented skills for ongoing work.
 ---
 
 # Transformation Discovery
+
+This skill remains for backward compatibility.
+
+Prefer:
+
+- `source-analysis`
+- `target-contract-analysis`
 
 ## Purpose
 

@@ -1,0 +1,6 @@
+Delivery expectations:
+- produce a Python transformation script
+- produce a transformation summary markdown file
+- produce mapping rules markdown
+- produce validation summary
+- clearly separate verified facts from assumptions

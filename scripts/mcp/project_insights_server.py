@@ -19,7 +19,7 @@ READ_ONLY = ToolAnnotations(
 )
 
 PROJECT_ROOT = Path(
-    os.environ.get("DATA_TRANSFORM_AGENT_PROJECT_ROOT", Path(__file__).resolve().parents[2])
+    os.environ.get("PROJECT_ROOT", Path(__file__).resolve().parents[2])
 ).resolve()
 SERVER = FastMCP("local_insights")
 

@@ -1,9 +1,18 @@
 ---
 name: delivery-planning
-description: Turn transformation understanding and dependency analysis into a credible implementation plan, authority path, and execution package. Use when the work is moving from analysis into delivery and keep delivery-implementation-plan.md concrete and execution-ready.
+description: Legacy compatibility wrapper for implementation-generation, validation-and-reconciliation, delivery-readiness, and approval-and-evidence. Use the newer capability-oriented skills for ongoing work.
 ---
 
 # Delivery Planning
+
+This skill remains for backward compatibility.
+
+Prefer:
+
+- `implementation-generation`
+- `validation-and-reconciliation`
+- `delivery-readiness`
+- `transformation-delivery-helper:approval-and-evidence`
 
 ## Purpose
 

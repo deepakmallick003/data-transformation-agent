@@ -9,6 +9,7 @@ WorkflowType = Literal[
     "dependency-mapping",
     "delivery-planning",
 ]
+ProgressState = Literal["pending", "working", "blocked", "ready", "done"]
 
 MessageRole = Literal["user", "assistant", "system"]
 ArtifactKind = Literal["artifact", "upload", "output"]
@@ -70,6 +71,31 @@ class RuntimeActivityEntry(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class UserFacingStatus(BaseModel):
+    id: str
+    label: str
+    state: ProgressState = "pending"
+    detail: str | None = None
+
+
+class DocumentSectionStatus(BaseModel):
+    title: str
+    state: Literal["complete", "assumption", "gap"] = "gap"
+    detail: str | None = None
+
+
+class TransformationDocumentStatus(BaseModel):
+    name: str
+    title: str
+    description: str
+    status: Literal["not_started", "in_progress", "needs_clarification", "ready"] = "not_started"
+    completion_ratio: float = 0.0
+    evidence_sections: int = 0
+    assumption_sections: int = 0
+    gap_sections: int = 0
+    sections: list[DocumentSectionStatus] = Field(default_factory=list)
+
+
 class RuntimeState(BaseModel):
     session: SessionRecord
     messages: list[MessageRecord]
@@ -77,6 +103,8 @@ class RuntimeState(BaseModel):
     outputs: list[ArtifactInfo]
     artifacts: list[ArtifactInfo]
     activity: list[RuntimeActivityEntry]
+    statuses: list[UserFacingStatus] = Field(default_factory=list)
+    documents: list[TransformationDocumentStatus] = Field(default_factory=list)
 
 
 class ChatResponse(BaseModel):
@@ -87,5 +115,6 @@ class ChatResponse(BaseModel):
     uploads: list[ArtifactInfo]
     outputs: list[ArtifactInfo]
     activity: list[RuntimeActivityEntry]
+    statuses: list[UserFacingStatus] = Field(default_factory=list)
     sdk_session_id: str | None = None
     raw_result: str | None = None

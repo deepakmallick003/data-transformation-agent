@@ -48,6 +48,13 @@ def build_session_artifact_server(
             artifact_name=args["artifact_name"],
             content=args["content"],
         )
+        session_manager.record_activity(
+            event="artifact-updated",
+            title=f"Updated artifact {path.name}",
+            detail=args["reason"],
+            level="success",
+            metadata={"artifact_name": path.name},
+        )
         return {
             "content": [
                 {
@@ -68,6 +75,13 @@ def build_session_artifact_server(
             session_id=session_id,
             filename=args["filename"],
             content=args["content"],
+        )
+        session_manager.record_activity(
+            event="output-written",
+            title=f"Wrote output {path.name}",
+            detail=args["description"],
+            level="success",
+            metadata={"filename": path.name},
         )
         return {
             "content": [

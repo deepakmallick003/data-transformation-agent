@@ -1,9 +1,16 @@
 ---
 name: dependency-mapping
-description: Build a working map of upstream inputs, joins, sequencing, controls, downstream consumers, and operational coupling for a transformation. Use when dependency analysis is needed and keep data-dependency-map.md implementation-grade.
+description: Legacy compatibility wrapper for mapping-and-rules and dependency-and-lineage. Use the newer capability-oriented skills for ongoing work.
 ---
 
 # Dependency Mapping
+
+This skill remains for backward compatibility.
+
+Prefer:
+
+- `mapping-and-rules`
+- `dependency-and-lineage`
 
 ## Purpose
 

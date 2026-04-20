@@ -59,7 +59,10 @@ def build_session_context_server(
     async def list_template_blueprints(_: dict[str, Any]) -> dict[str, Any]:
         definitions = list_template_definitions()
         lines = [
-            f"- {definition.destination} (source template: {definition.source})"
+            (
+                f"- {definition.destination} (source template: {definition.source}; "
+                f"title: {definition.title}; capabilities: {', '.join(definition.capabilities)})"
+            )
             for definition in definitions
         ]
         return {"content": [{"type": "text", "text": "\n".join(lines)}]}

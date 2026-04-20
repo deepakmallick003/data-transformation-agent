@@ -6,87 +6,88 @@
     <title>Data Transformation Agent</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body data-api-base="{{ api_base_url }}">
     <main class="app-shell">
-      <header class="masthead">
-        <div>
-          <p class="eyebrow">Data Transformation Agent</p>
-          <h1>One runtime. Focused chat. Agentic controls.</h1>
-          <p id="runtimeSummary" class="lede">
-            A fresh workspace is created when the backend starts. Use slash abilities,
-            upload context, and follow the agent activity on the right.
-          </p>
-        </div>
-        <div class="status-cluster">
-          <span id="runtimeModeBadge" class="status-badge">Ephemeral runtime</span>
-          <span id="cliStatusBadge" class="status-badge muted-badge">Checking Claude CLI</span>
-          <span id="keyStatusBadge" class="status-badge muted-badge">Checking API key</span>
-        </div>
-      </header>
-
-      <section class="workspace">
-        <section class="chat-stage panel">
-          <div class="stage-header">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand-lockup">
+            <span class="brand-mark">DT</span>
             <div>
-              <p class="section-label">Abilities</p>
-              <div id="abilityStrip" class="ability-strip"></div>
+              <p class="brand-kicker">Data Transformation Agent</p>
             </div>
-            <div id="selectedAbility" class="selected-ability"></div>
           </div>
 
-          <div id="messageList" class="message-list"></div>
+          <div class="sidebar-top-actions">
+            <button id="newChatButton" type="button" class="sidebar-action">New chat</button>
+            <form method="post" action="{{ url_for('logout') }}">
+              <button type="submit" class="sidebar-action secondary">Sign out</button>
+            </form>
+          </div>
+        </div>
 
-          <form id="chatForm" class="composer">
-            <div id="commandMenu" class="command-menu hidden"></div>
-            <label class="composer-field">
-              <textarea
-                id="composerInput"
-                name="message"
-                rows="5"
-                placeholder="Start with /discover, /map, /plan, or /authority, then describe the task."
-              ></textarea>
-            </label>
-
-            <div class="composer-footer">
-              <div class="composer-hint">
-                Type <code>/</code> to switch abilities. The slash command sets the workflow for this turn.
-              </div>
-              <div class="composer-actions">
-                <label class="upload-button">
-                  <input id="uploadInput" type="file" name="file">
-                  <span>Attach file</span>
-                </label>
-                <button id="sendButton" type="submit">Run agent</button>
-              </div>
-            </div>
-          </form>
+        <section class="sidebar-section">
+          <p class="sidebar-label">Session</p>
+          <div id="sessionList" class="session-list"></div>
         </section>
 
-        <aside class="side-rail">
-          <section class="panel rail-card">
-            <div class="rail-heading">
-              <h2>Runtime</h2>
-            </div>
-            <div id="runtimeFacts" class="fact-list"></div>
-          </section>
+        <section id="testCaseSection" class="sidebar-section hidden">
+          <p class="sidebar-label">Preload test cases</p>
+          <div id="testCaseList" class="sidebar-actions"></div>
+        </section>
 
-          <section class="panel rail-card">
-            <div class="rail-heading">
-              <h2>Uploads</h2>
-            </div>
-            <div id="uploadList" class="upload-list"></div>
-          </section>
+        <section id="modeSection" class="sidebar-section hidden">
+          <p class="sidebar-label">Modes</p>
+          <div id="modeList" class="sidebar-actions"></div>
+        </section>
 
-          <section class="panel rail-card">
-            <div class="rail-heading">
-              <h2>Activity</h2>
+        <section id="subagentSection" class="sidebar-section hidden">
+          <p class="sidebar-label">Tools</p>
+          <div id="subagentList" class="sidebar-actions"></div>
+        </section>
+      </aside>
+
+      <section class="chat-column">
+        <header class="chat-header">
+          <div>
+            <p class="chat-eyebrow">Conversation</p>
+            <h2>Start with a request or attach source evidence</h2>
+          </div>
+          <div id="alertStack" class="inline-alerts"></div>
+        </header>
+
+        <section id="messageList" class="message-list" aria-live="polite"></section>
+
+        <form id="chatForm" class="composer-shell">
+          <div id="commandMenu" class="command-menu hidden"></div>
+          <div class="composer">
+            <div class="composer-topline">
+              <div id="composerMode" class="composer-mode"></div>
             </div>
-            <div id="activityList" class="activity-list"></div>
-          </section>
-        </aside>
+
+            <div id="attachmentTray" class="attachment-tray hidden"></div>
+
+            <textarea
+              id="composerInput"
+              name="message"
+              rows="1"
+              placeholder="Describe the transformation you want, then send when you are ready."
+            ></textarea>
+
+            <div class="composer-actions">
+              <div class="composer-tools">
+                <label class="composer-button">
+                  <input id="uploadInput" type="file" name="file" multiple>
+                  <span>Attach</span>
+                </label>
+                <button id="addLinkButton" type="button" class="composer-button secondary">Add link</button>
+              </div>
+              <button id="sendButton" type="submit" class="send-button">Send</button>
+            </div>
+          </div>
+        </form>
       </section>
     </main>
 

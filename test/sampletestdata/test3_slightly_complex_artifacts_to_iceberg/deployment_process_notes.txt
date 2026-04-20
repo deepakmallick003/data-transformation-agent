@@ -1,0 +1,10 @@
+Deployment/process notes:
+- current jobs run in Airflow on Kubernetes
+- Python transformations are packaged as container jobs
+- Iceberg writes are expected to land in the analytics metastore
+- deployment pipeline requires:
+  - implementation summary
+  - schema impact summary
+  - rollback notes
+  - validation checks
+- production sign-off requires platform engineer + analytics owner approval
