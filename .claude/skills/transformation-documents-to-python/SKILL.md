@@ -14,7 +14,7 @@ This skill is about:
 - reading the relevant document set as a whole
 - extracting mappings, rules, dependencies, validations, and rejection logic
 - choosing a sensible Python implementation shape
-- generating grounded code and related runtime artifacts in a request-specific output location
+- generating grounded code and related runtime artifacts in a request-specific processed-results location
 
 Do not invent business logic that the documents do not support.
 Do not stop at a raw script if the output would be hard to run, review, or test.
@@ -70,8 +70,8 @@ than generating code from a guessed or auto-selected document set.
 9. Add the supporting run guidance needed to make the output usable.
 10. Generate supporting configuration artifacts when the document set implies they are needed.
 11. Make assumptions visible in comments or a short module docstring instead of burying them in logic.
-12. Store the generated outputs in a disciplined request-specific code folder.
-13. Package the generated bundle into a single archive when the workflow or user would benefit from a handoff-ready artifact, reusing the already-staged transformation documents instead of copying them into the code folder.
+12. Store the generated outputs in a disciplined request-specific processed-results code folder.
+13. Package the generated bundle into a single archive when the workflow or user would benefit from a handoff-ready artifact, reusing the already-staged transformation documents from raw results instead of copying them into the code folder.
 
 Prefer a clear working script over a large speculative framework.
 
@@ -172,22 +172,22 @@ should be explained in the generated `README.md`, which should distinguish:
 Write generated outputs under:
 
 ```text
-data/
-  results/
+results/
+  processed/
     request<request_id>/
       code/
         README.md
         .env.example
         <something>.yaml
         transformation.py
-      etmp-to-mdm-vat-code-bundle.zip
+      <transformation-slug>-code-bundle.zip
 ```
 
 If no request id exists, generate one and still use the same request-style pattern, for example:
 
 ```text
-data/
-  results/
+results/
+  processed/
     request<generated_id>/
       code/
         README.md
@@ -206,6 +206,8 @@ Naming guidance:
 
 Keep the output paths stable enough that downstream steps can reference them directly.
 Do not assume the user will run the bundle from the repository checkout.
+Treat the staged transformation documents in `results/raw/request<id>/transformation-documents/` as
+the companion evidence for the generated code.
 
 ## Supporting Files
 
@@ -225,6 +227,9 @@ Create a concise request-specific `README.md` that explains:
 Write the run instructions so the bundle can be extracted and executed from any directory, not only
 from the repository that generated it.
 Do not expose internal skill-selection details or generation-process commentary in this file.
+If the request-scoped staged documents live outside the `code/` directory, describe that clearly in
+user-facing terms instead of assuming sibling folders that may no longer exist after the repo layout
+changes.
 
 ### `.env.example`
 
@@ -258,7 +263,7 @@ artifact at the request level or another nearby handoff location.
 - prefer a zip archive of the generated script and supporting files
 - ensure the archive contents match the staged outputs exactly
 - include the transformation documents used to generate the code so the bundle carries its own evidence
-- reuse the already-staged `transformation-documents/` directory when packaging; do not create a second local copy inside `code/`
+- reuse the already-staged `results/raw/request<id>/transformation-documents/` directory when packaging; do not create a second local copy inside `code/`
 - do not omit `README.md`, YAML configuration artifacts, or required configuration examples from the archive when they are part of the deliverable
 - exclude transient artifacts such as `__pycache__`, compiled bytecode, temporary outputs, or local editor files
 - ensure the archive remains usable when extracted outside the original repository
@@ -312,6 +317,7 @@ This skill has done its job when:
 - the generated Python reflects the documented mappings and rules
 - assumptions and unresolved gaps are visible instead of hidden
 - the script and supporting run guidance are stored in the request-specific `code/` folder
+- the generated artifacts live under `results/processed/request<id>/`
 - any needed environment template is included without exposing secrets
 - the output is structured so another engineer can run and test it
 - a single bundled artifact is produced when handoff packaging is useful

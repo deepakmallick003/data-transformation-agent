@@ -22,7 +22,7 @@ Do not generate transformation logic here beyond what is needed to justify docum
 ## Use This Skill When
 
 - the request references a transformation but the document set is not yet assembled
-- the relevant files may exist in multiple local folders or upstream staged handoff areas
+- the relevant files may exist in multiple local folders, metadata-backed source locations, or upstream staged handoff areas
 - a transformation may have more than one supporting document
 - the agent may need to search permitted external sources and stage the results locally
 - downstream code generation should work from a stable staged document set instead of ad hoc file paths
@@ -32,15 +32,18 @@ Do not generate transformation logic here beyond what is needed to justify docum
 Search in this order unless the user gives a better instruction:
 
 1. documents already provided directly in the current request
-2. uploaded files or explicitly designated source or staging locations for this workflow, including sample-data areas when the request is for testing or simulation
-3. known upstream handoff locations, only when this workflow is expected to receive staged transformation documents from an earlier step
-4. permitted external sources, only when the document set cannot be resolved locally
+2. uploaded files or explicitly designated source or staging locations for this workflow, including `data/test-data/` when the request is for testing or simulation
+3. relevant metadata under `data/metadata/` that describes where transformation documents live, how they are named, or which external source to search
+4. known upstream handoff locations, only when this workflow is expected to receive staged transformation documents from an earlier step
+5. permitted external sources, only when the document set cannot be resolved locally
 
 Prefer the closest evidence to the current request. Do not ignore a direct user-provided document
 because an older local copy also exists.
 
-Do not broadly treat `data/results/` as a generic search area just because it contains past outputs.
-Use it only when it is acting as a deliberate staged handoff location in the wider workflow.
+Do not broadly treat `results/processed/` as a generic search area just because it contains past
+outputs. Use processed results only when they are acting as a deliberate staged handoff location in
+the wider workflow. Prefer `results/raw/` over `results/processed/` when an earlier workflow step
+already staged transformation documents for this request.
 
 ## Confirmation Boundary
 
@@ -71,12 +74,13 @@ Do not assume one file is sufficient just because it contains the word "transfor
 ## Working Method
 
 1. Extract the strongest available identifiers from the request.
-2. Search for candidate documents using filenames, feed references, request ids, source and target system names, and transformation slugs.
-3. Read enough of each candidate to confirm scope, ownership, and whether it belongs to the same transformation.
-4. Group documents into the smallest complete set that can credibly support implementation.
-5. If multiple plausible sets exist, prefer the one with the strongest direct evidence and most complete coverage.
-6. Stage the selected set into a request-specific local folder for downstream use.
-7. If the selected set was agent-discovered rather than directly provided by the user, present the planned document set and source locations for confirmation before code generation.
+2. Read any relevant metadata in `data/metadata/` that explains candidate source locations, naming conventions, bucket prefixes, table definitions, or external repository structure.
+3. Search for candidate documents using filenames, feed references, request ids, source and target system names, and transformation slugs.
+4. Read enough of each candidate to confirm scope, ownership, and whether it belongs to the same transformation.
+5. Group documents into the smallest complete set that can credibly support implementation.
+6. If multiple plausible sets exist, prefer the one with the strongest direct evidence and most complete coverage.
+7. Stage the selected set into a request-specific local raw-results folder for downstream use.
+8. If the selected set was agent-discovered rather than directly provided by the user, present the planned document set and source locations for confirmation before code generation.
 
 Prefer deliberate grouping over broad collection. The goal is the right set, not every nearby file.
 
@@ -95,9 +99,10 @@ Prefer deliberate grouping over broad collection. The goal is the right set, not
 Only use tools and locations the agent is permitted to access.
 
 - Search locally first.
+- Use the relevant metadata file in `data/metadata/` first when it narrows the external search space, such as `s3_structure.md`, table definitions, or source-layout notes.
 - If remote retrieval is needed, use the relevant permitted search or retrieval tool for that source.
 - Prefer the most direct allowed tool for the source rather than forcing a fixed integration pattern.
-- Bring remote files into the local staged folder before downstream processing.
+- Bring remote files into the local raw-results staged folder before downstream processing.
 - Preserve the original filename where practical.
 - Record enough provenance to explain where each staged file came from.
 
@@ -108,9 +113,10 @@ If access is blocked or approval is required, say so clearly instead of pretendi
 Prefer designated source or handoff locations over broad output scanning.
 
 - do not treat historical outputs as the default source of truth
-- do not search `data/results/` indiscriminately for candidate documents
-- use `data/results/` only when upstream workflow behavior intentionally stages transformation documents there
-- treat `data/sample-data/` or similar sample-document locations as valid sources when the task is clearly a test, simulation, or example-driven run
+- do not search `results/processed/` indiscriminately for candidate documents
+- use `results/raw/` or another explicit handoff location when upstream workflow behavior intentionally stages transformation documents there
+- treat `data/test-data/` or similar test-document locations as valid sources when the task is clearly a test, simulation, or example-driven run
+- treat files under `data/metadata/` as discovery aids and source descriptors, not as the transformation document set itself unless the file is itself a transformation document
 - if the repository has templates such as `data/templates/` or other reusable pattern areas, treat them as references or scaffolding, not as the transformation document set itself unless the user explicitly says otherwise
 
 ## Staging Layout
@@ -118,8 +124,8 @@ Prefer designated source or handoff locations over broad output scanning.
 Stage the selected documents under a disciplined results location such as:
 
 ```text
-data/
-  results/
+results/
+  raw/
     request<request_id>/
       transformation-documents/
         <transformation-slug>/
@@ -129,8 +135,8 @@ data/
 If no request id exists, generate one and still use the same request-style pattern, for example:
 
 ```text
-data/
-  results/
+results/
+  raw/
     request<generated_id>/
       transformation-documents/
         <transformation-slug>/
@@ -149,6 +155,7 @@ Inside the staged folder:
 - keep all documents for the same transformation together
 - create a brief manifest only when provenance or grouping would otherwise be ambiguous
 - prefer deterministic folder naming; use a request id when available, otherwise generate one and keep the `request<id>` pattern
+- keep source metadata separate from staged documents; for example, keep `data/metadata/s3_structure.md` in place and use it to justify retrieval rather than copying it into the staged document set unless it is needed as evidence for the request
 
 The staged set should be clean enough that downstream code generation can consume it without
 re-running discovery.
