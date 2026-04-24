@@ -13,11 +13,14 @@ This skill is about:
 
 - reading the relevant document set as a whole
 - extracting mappings, rules, dependencies, validations, and rejection logic
-- choosing a sensible Python implementation shape
-- generating grounded code and related runtime artifacts in a request-specific processed-results location
+- identifying implementation decisions that still require user choice
+- choosing a deterministic Python implementation shape only after the choice boundary is resolved
+- generating grounded code and related runtime artifacts using the shared request storage contract from `CLAUDE.md`
 
 Do not invent business logic that the documents do not support.
 Do not stop at a raw script if the output would be hard to run, review, or test.
+Do not define alternate storage policy here. Use the shared storage and mirroring rules from
+`CLAUDE.md` and the relevant metadata such as `s3_structure.md`.
 
 ## Use This Skill When
 
@@ -29,6 +32,13 @@ Do not stop at a raw script if the output would be hard to run, review, or test.
 If document resolution is still uncertain, use `transformation-document-resolution` first.
 If the document set was discovered by the agent rather than directly supplied in the current
 request, require explicit user confirmation before generating code.
+
+## Operating Mode
+
+Use one of these two modes:
+
+- human-in-the-loop mode: the default. Ask the user to resolve meaningful implementation choices before generating code.
+- unattended mode: only when the runtime or caller has explicitly configured the agent to operate independently. In this mode, choose from the default design profiles below, record those choices clearly, and continue only if all validation gates pass.
 
 ## Inputs To Read
 
@@ -57,6 +67,52 @@ Only proceed directly to code generation when one of these is true:
 If none of those conditions is true, stop after document resolution and ask for confirmation rather
 than generating code from a guessed or auto-selected document set.
 
+## Design Decision Boundary
+
+Do not move straight from reading documents to generating code when meaningful design choices remain open.
+
+Meaningful choices may include:
+
+- single script or multi-file package
+- CLI-only or service/API-oriented wrapper
+- minimal dependency set or broader library usage
+- whether tests should be generated
+- whether sample or fixture data should be generated
+- whether the output should be script-only, a runnable project, or a handoff bundle
+
+If the documents or request clearly determine the answer, follow that evidence.
+If they do not, and the agent is in human-in-the-loop mode, ask the user before generating code.
+
+## Structured User Questions
+
+In human-in-the-loop mode, ask a small, focused set of implementation questions when the answer is not already clear.
+
+Keep the questions concise and decision-oriented.
+Do not ask for every possible preference.
+Ask only what materially affects structure, dependencies, deliverables, or runtime shape.
+
+Typical examples include:
+
+- should this be a single script or a small multi-file project
+- do you want a plain script, CLI-friendly package, or API/web wrapper
+- should I generate tests and sample test data
+- should I stay with lightweight dependencies unless the documents clearly require more
+
+If multiple options are plausible, present them as clear choices with a short implication for each.
+Do not generate code until the needed choices are resolved, unless unattended mode has been explicitly enabled.
+
+## Default Design Profiles
+
+When unattended mode is explicitly enabled, choose only from these deterministic implementation profiles:
+
+- `script-basic`: one primary Python script, minimal dependencies, no generated tests unless clearly needed
+- `script-plus-tests`: one primary Python script with focused tests and basic fixtures
+- `package-cli`: small package with reusable modules and a thin CLI entrypoint
+- `package-api`: small package with clear service boundaries for API-style exposure when the request or documents justify it
+
+Prefer the lightest profile that credibly satisfies the request and documents.
+Do not invent a custom architecture when one of these profiles is sufficient.
+
 ## Working Method
 
 1. Read the staged document set and identify the implementation boundary.
@@ -64,20 +120,22 @@ than generating code from a guessed or auto-selected document set.
 3. Extract explicit source-to-target mappings, rule logic, validations, and failure paths.
 4. Assess whether the document set is sufficient for a fully runnable implementation or only a bounded best-effort slice.
 5. Separate confirmed logic from assumptions or gaps.
-6. Infer the lightest credible Python implementation shape from the evidence.
-7. Generate Python code that implements the confirmed behavior first.
-8. Validate the generated code before finalizing it.
-9. Add the supporting run guidance needed to make the output usable.
-10. Generate supporting configuration artifacts when the document set implies they are needed.
-11. Make assumptions visible in comments or a short module docstring instead of burying them in logic.
-12. Store the generated outputs in a disciplined request-specific processed-results code folder.
-13. Package the generated bundle into a single archive when the workflow or user would benefit from a handoff-ready artifact, reusing the already-staged transformation documents from raw results instead of copying them into the code folder.
+6. Identify which implementation decisions are already determined by the documents and which still need a choice.
+7. If human-in-the-loop mode applies and unresolved meaningful choices remain, ask the user and stop until those choices are answered.
+8. Choose the lightest credible implementation profile from the approved or default options.
+9. Generate Python code that implements the confirmed behavior first.
+10. Validate the generated code before finalizing it.
+11. Add the supporting run guidance needed to make the output usable.
+12. Generate supporting configuration artifacts only when the document set or chosen profile implies they are needed.
+13. Make assumptions visible in comments or a short module docstring instead of burying them in logic.
+14. Store the generated outputs using the shared request storage contract from `CLAUDE.md`.
+15. Package the generated bundle when the workflow or user would benefit from a handoff-ready artifact.
 
-Prefer a clear working script over a large speculative framework.
+Prefer a clear working implementation over a large speculative framework.
 
 ## Implementation Shape Guidance
 
-Choose the implementation shape that best matches the documents:
+Choose the implementation shape that best matches the documents and the resolved user choices:
 
 - file-to-file transformation script for feed-based CSV or delimited inputs
 - reusable parser and transformer module when multiple source files feed one output flow
@@ -86,6 +144,7 @@ Choose the implementation shape that best matches the documents:
 - YAML configuration or contract artifact when the workflow needs structured runtime metadata alongside the code
 
 Prefer standard-library Python unless the documents clearly justify heavier dependencies.
+If dependency choice is materially open and human-in-the-loop mode applies, ask before adding broader libraries.
 
 ## Verification Rule
 
@@ -101,6 +160,21 @@ extent feasible in the current environment.
 - if execution cannot be completed because inputs, credentials, services, or tooling are missing, state that explicitly in the support files
 
 Prefer small verifiable deliverables over large unverified ones.
+
+## Self-Validation Checklist
+
+Before completing the skill, verify all of the following:
+
+- the document set was approved for generation
+- required user design choices were resolved, or unattended mode was explicitly enabled
+- the selected implementation profile matches the request and documents
+- the generated files are stored under the shared request structure from `CLAUDE.md`
+- files were not dumped loosely into an unstructured location outside the shared request structure
+- any required local-to-S3 mirroring expectations have been satisfied for this workflow
+- the generated code passed the feasible validation checks
+- the support files accurately describe assumptions and gaps
+
+If any item fails, do not proceed as if the skill completed successfully.
 
 ## Python Code Standard
 
@@ -167,51 +241,23 @@ should be explained in the generated `README.md`, which should distinguish:
 - missing operational details that block a production-faithful implementation
 - optional future enhancements that were intentionally not invented
 
-## Output Location
+## Output Handling
 
-Write generated outputs under:
+Write generated outputs using the shared request storage contract from `CLAUDE.md`.
+Do not define a competing output layout in this skill.
 
-```text
-results/
-  processed/
-    request<request_id>/
-      code/
-        README.md
-        .env.example
-        <something>.yaml
-        transformation.py
-      <transformation-slug>-code-bundle.zip
-```
+For this skill:
 
-If no request id exists, generate one and still use the same request-style pattern, for example:
+- generated code and support files belong in request-scoped `deliverables/` and, where appropriate, machine-readable build artifacts may also appear in `work/`
+- staged source documents remain in `evidence/` and should not be copied casually into unrelated working locations
+- if packaging is required, the package should reflect the deliverables exactly
+- if local request artifacts are mirrored to S3 for this workflow, ensure the mirrored state stays aligned before completion
 
-```text
-results/
-  processed/
-    request<generated_id>/
-      code/
-        README.md
-        .env.example
-        <something>.yaml
-        transformation.py
-      <transformation-slug>-code-bundle.zip
-```
-
-Naming guidance:
-
-- use `transformation.py` when the request clearly has one primary generated script
-- prefer `<transformation_slug>_transformation.py` when multiple generated scripts may coexist
-- always use the `request<id>` folder pattern for consistency
-- if the workflow does not supply a request id, generate one and still use `request<generated_id>`
-
-Keep the output paths stable enough that downstream steps can reference them directly.
-Do not assume the user will run the bundle from the repository checkout.
-Treat the staged transformation documents in `results/raw/request<id>/transformation-documents/` as
-the companion evidence for the generated code.
+Keep the output paths deterministic within the shared request structure so downstream steps can reference them reliably.
 
 ## Supporting Files
 
-The code folder should usually contain more than the Python file itself.
+The deliverable set should usually contain more than the Python file itself.
 
 ### `README.md`
 
@@ -224,12 +270,11 @@ Create a concise request-specific `README.md` that explains:
 - how to run the script
 - known assumptions or unresolved gaps
 
-Write the run instructions so the bundle can be extracted and executed from any directory, not only
+Write the run instructions so the deliverable can be extracted and executed from any directory, not only
 from the repository that generated it.
 Do not expose internal skill-selection details or generation-process commentary in this file.
-If the request-scoped staged documents live outside the `code/` directory, describe that clearly in
-user-facing terms instead of assuming sibling folders that may no longer exist after the repo layout
-changes.
+If the request-scoped staged documents live outside the deliverable folder, describe that clearly in
+user-facing terms instead of assuming sibling folders that may not exist after packaging.
 
 ### `.env.example`
 
@@ -262,8 +307,9 @@ artifact at the request level or another nearby handoff location.
 
 - prefer a zip archive of the generated script and supporting files
 - ensure the archive contents match the staged outputs exactly
-- include the transformation documents used to generate the code so the bundle carries its own evidence
-- reuse the already-staged `results/raw/request<id>/transformation-documents/` directory when packaging; do not create a second local copy inside `code/`
+- include evidence references or manifests when needed for traceability
+- include the source documents themselves only when the workflow explicitly requires a self-contained bundle and doing so does not violate the shared storage contract
+- reuse the already-staged request evidence rather than creating loose duplicate copies in unrelated working locations
 - do not omit `README.md`, YAML configuration artifacts, or required configuration examples from the archive when they are part of the deliverable
 - exclude transient artifacts such as `__pycache__`, compiled bytecode, temporary outputs, or local editor files
 - ensure the archive remains usable when extracted outside the original repository
@@ -314,11 +360,12 @@ This skill has done its job when:
 
 - the staged document set has been read as one implementation input
 - the document provenance is direct or explicitly user-confirmed
+- any required design choices have been resolved or explicitly defaulted under unattended mode
 - the generated Python reflects the documented mappings and rules
 - assumptions and unresolved gaps are visible instead of hidden
-- the script and supporting run guidance are stored in the request-specific `code/` folder
-- the generated artifacts live under `results/processed/request<id>/`
+- the generated artifacts live under the shared request structure from `CLAUDE.md`
 - any needed environment template is included without exposing secrets
 - the output is structured so another engineer can run and test it
 - a single bundled artifact is produced when handoff packaging is useful
+- the workflow has not violated any shared storage or mirroring rule
 - another engineer can see how the code connects back to the transformation documents

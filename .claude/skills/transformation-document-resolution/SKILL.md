@@ -7,17 +7,20 @@ description: Resolve, group, and stage the transformation document set needed fo
 
 ## Purpose
 
-Use this skill to identify the correct transformation document set for a request before code is
-generated.
+Use this skill to identify, verify, and present the correct transformation document set for a
+request before any implementation work begins.
 
 This skill is about:
 
 - finding candidate transformation documents
 - deciding which files belong to the same transformation request
 - handling single-document and multi-document cases
-- staging the chosen document set into a clean local structure for downstream use
+- presenting the selected document set to the user in a structured way when confirmation is required
+- preparing the approved document set for downstream use in the request storage model defined by `CLAUDE.md`
 
 Do not generate transformation logic here beyond what is needed to justify document selection.
+Do not define alternate storage semantics here. Use the request storage contract from `CLAUDE.md`
+and any applicable source metadata such as `s3_structure.md`.
 
 ## Use This Skill When
 
@@ -32,18 +35,16 @@ Do not generate transformation logic here beyond what is needed to justify docum
 Search in this order unless the user gives a better instruction:
 
 1. documents already provided directly in the current request
-2. uploaded files or explicitly designated source or staging locations for this workflow, including `data/test-data/` when the request is for testing or simulation
-3. relevant metadata under `data/metadata/` that describes where transformation documents live, how they are named, or which external source to search
+2. uploaded files or explicitly designated source or staging locations for this workflow
+3. relevant metadata that describes where transformation documents live, how they are named, or which external source to search
 4. known upstream handoff locations, only when this workflow is expected to receive staged transformation documents from an earlier step
 5. permitted external sources, only when the document set cannot be resolved locally
 
 Prefer the closest evidence to the current request. Do not ignore a direct user-provided document
 because an older local copy also exists.
 
-Do not broadly treat `results/processed/` as a generic search area just because it contains past
-outputs. Use processed results only when they are acting as a deliberate staged handoff location in
-the wider workflow. Prefer `results/raw/` over `results/processed/` when an earlier workflow step
-already staged transformation documents for this request.
+Do not broadly treat historical generated output as the default source of truth. Historical request
+artifacts may only be used when they are acting as an explicit handoff or approved prior context.
 
 ## Confirmation Boundary
 
@@ -55,6 +56,7 @@ Use this decision rule before handing off to code generation:
 
 Do not move from discovered documents to code generation without a user green light when the
 documents were not directly provided in the current request.
+If confirmation is required and has not been received, stop after presenting the candidate set.
 
 ## What Counts As A Document Set
 
@@ -71,18 +73,38 @@ source-target pairing, request identifier, or mutually reinforcing references:
 
 Do not assume one file is sufficient just because it contains the word "transformation."
 
+## Operating Mode
+
+Use one of these two modes:
+
+- human-in-the-loop mode: the default. Present discovered sets and wait for user confirmation before staging or handoff when the set was not directly supplied in the current request.
+- unattended mode: only when the runtime or caller has explicitly configured the agent to operate without user confirmation. In this mode, make the most defensible deterministic choice, record that choice clearly, and continue only if all validation gates pass.
+
+Prefer deliberate grouping over broad collection. The goal is the right set, not every nearby file.
+
+## Phase Contract
+
+Follow these phases in order. Do not skip ahead.
+
+1. Discover candidate files and group them into plausible document sets.
+2. Validate grouping quality, completeness, provenance, and request relevance.
+3. Decide whether user confirmation is required.
+4. If confirmation is required, present the candidate set or sets in a structured format and stop.
+5. Only after approval, stage the approved set according to `CLAUDE.md` and the relevant source metadata.
+6. Re-validate the staged result before handing off.
+
 ## Working Method
 
 1. Extract the strongest available identifiers from the request.
-2. Read any relevant metadata in `data/metadata/` that explains candidate source locations, naming conventions, bucket prefixes, table definitions, or external repository structure.
+2. Read the relevant metadata files that explain candidate source locations, naming conventions, bucket prefixes, source structure, and any mirroring expectations.
 3. Search for candidate documents using filenames, feed references, request ids, source and target system names, and transformation slugs.
 4. Read enough of each candidate to confirm scope, ownership, and whether it belongs to the same transformation.
 5. Group documents into the smallest complete set that can credibly support implementation.
-6. If multiple plausible sets exist, prefer the one with the strongest direct evidence and most complete coverage.
-7. Stage the selected set into a request-specific local raw-results folder for downstream use.
-8. If the selected set was agent-discovered rather than directly provided by the user, present the planned document set and source locations for confirmation before code generation.
-
-Prefer deliberate grouping over broad collection. The goal is the right set, not every nearby file.
+6. If multiple plausible sets exist, rank them by evidence strength and completeness instead of silently choosing one.
+7. Determine whether confirmation is required under the rules above.
+8. If confirmation is required, present the findings and stop until the user chooses or approves a set.
+9. If confirmation is not required, or has been received, stage the approved set using the shared request storage contract.
+10. Validate that the staged result satisfies structure, provenance, and mirroring expectations before handoff.
 
 ## Selection Rules
 
@@ -93,18 +115,20 @@ Prefer deliberate grouping over broad collection. The goal is the right set, not
 - Keep related documents together even if they live in different source locations before staging.
 - Do not silently merge different transformations that merely share a domain or system.
 - If the chosen set comes from agent discovery rather than direct user evidence, show the user exactly which files are about to be used and from where.
+- If multiple plausible sets remain, do not auto-pick in human-in-the-loop mode. Present numbered options.
 
 ## External Search Rules
 
 Only use tools and locations the agent is permitted to access.
 
 - Search locally first.
-- Use the relevant metadata file in `data/metadata/` first when it narrows the external search space, such as `s3_structure.md`, table definitions, or source-layout notes.
+- Use the relevant metadata file first when it narrows the external search space, such as `s3_structure.md`, table definitions, or source-layout notes.
 - If remote retrieval is needed, use the relevant permitted search or retrieval tool for that source.
 - Prefer the most direct allowed tool for the source rather than forcing a fixed integration pattern.
-- Bring remote files into the local raw-results staged folder before downstream processing.
+- Bring remote files into the request-scoped evidence area defined by `CLAUDE.md`.
 - Preserve the original filename where practical.
 - Record enough provenance to explain where each staged file came from.
+- When S3-backed request storage applies, keep the request-scoped local and S3 representations aligned according to the relevant S3 metadata contract.
 
 If access is blocked or approval is required, say so clearly instead of pretending the search is complete.
 
@@ -113,51 +137,52 @@ If access is blocked or approval is required, say so clearly instead of pretendi
 Prefer designated source or handoff locations over broad output scanning.
 
 - do not treat historical outputs as the default source of truth
-- do not search `results/processed/` indiscriminately for candidate documents
-- use `results/raw/` or another explicit handoff location when upstream workflow behavior intentionally stages transformation documents there
-- treat `data/test-data/` or similar test-document locations as valid sources when the task is clearly a test, simulation, or example-driven run
-- treat files under `data/metadata/` as discovery aids and source descriptors, not as the transformation document set itself unless the file is itself a transformation document
-- if the repository has templates such as `data/templates/` or other reusable pattern areas, treat them as references or scaffolding, not as the transformation document set itself unless the user explicitly says otherwise
+- do not search historical request outputs indiscriminately for candidate documents
+- use approved handoff locations or request evidence locations when upstream workflow behavior intentionally staged transformation documents there
+- treat metadata files as discovery aids and source descriptors, not as the transformation document set itself unless a metadata file is itself the requested source document
+- treat reusable templates or scaffolding areas as references, not as the transformation document set itself unless the user explicitly says otherwise
 
-## Staging Layout
+## Structured User Presentation
 
-Stage the selected documents under a disciplined results location such as:
+When user confirmation is required, present findings in a disciplined format.
 
-```text
-results/
-  raw/
-    request<request_id>/
-      transformation-documents/
-        <transformation-slug>/
-          ...
-```
+For a single plausible discovered set, show:
 
-If no request id exists, generate one and still use the same request-style pattern, for example:
+- the proposed transformation or feed identity
+- the files in the set
+- where each file was found
+- why this set was selected
+- any missing or ambiguous pieces
+- a direct approval question
 
-```text
-results/
-  raw/
-    request<generated_id>/
-      transformation-documents/
-        <transformation-slug>/
-          ...
-```
+For multiple plausible sets, show:
 
-Use a stable slug based on the best confirmed transformation identity, such as
-`etmp-to-mdm-vat` or `vat-returns-feed`.
-If no request id is supplied by the workflow, generate one and keep the outer folder in the
-`request<id>` pattern for consistency across runs.
+- numbered options
+- the files in each option
+- the source location for each option
+- why each option is plausible
+- what makes one option stronger or weaker than another
+- a direct choice prompt
 
-Inside the staged folder:
+Do not proceed to staging for downstream generation in human-in-the-loop mode until the user has
+approved the set or selected an option.
 
-- keep original filenames when they are already meaningful
-- avoid renaming files in ways that hide their source role
-- keep all documents for the same transformation together
-- create a brief manifest only when provenance or grouping would otherwise be ambiguous
-- prefer deterministic folder naming; use a request id when available, otherwise generate one and keep the `request<id>` pattern
-- keep source metadata separate from staged documents; for example, keep `data/metadata/s3_structure.md` in place and use it to justify retrieval rather than copying it into the staged document set unless it is needed as evidence for the request
+## Staging And Mirroring
 
-The staged set should be clean enough that downstream code generation can consume it without
+After approval, stage the selected documents using the request storage semantics from `CLAUDE.md`.
+
+Use `request/`, `evidence/`, `work/`, and `deliverables/` exactly as defined there.
+Do not invent alternate folder structures inside this skill.
+
+For this skill specifically:
+
+- store fetched source documents under request-scoped `evidence/`
+- keep original filenames where practical
+- keep grouped documents together under a stable source-specific subpath
+- record provenance if it is not already obvious from the path and filenames
+- when the runtime mirrors request artifacts to S3, ensure the local and S3 views remain aligned before handoff
+
+The staged set should be clean enough that downstream implementation work can consume it without
 re-running discovery.
 
 ## Handoff To Code Generation
@@ -171,14 +196,29 @@ input.
 - any missing or conflicting documents should be called out explicitly for the next skill
 - if a manifest is needed, it should clarify grouping and provenance, not restate the documents
 - if the document set was agent-discovered, the user should have explicitly confirmed that this is the set to use
+- the request-scoped structure should satisfy the shared contract from `CLAUDE.md`
+- if S3 mirroring is expected for this workflow, the mirrored state must exist or the handoff should stop with a clear explanation
+
+## Validation Gates
+
+Do not proceed or claim completion if any of these fail:
+
+- required user confirmation is missing
+- the selected set still has unresolved identity conflicts
+- the staged documents are not stored under the shared request structure
+- provenance is incomplete or misleading
+- files have been written into a loose unstructured area outside the shared request structure
+- local and S3 request representations are expected to mirror but do not
 
 ## Done When
 
 This skill has done its job when:
 
 - the relevant transformation document set has been identified
-- the selected files are grouped as one staged document set
-- the staged location is stable and request-specific
-- the agent can hand the staged set to Python code generation without needing to rediscover documents
+- the selected files are grouped as one approved document set
 - any required user confirmation has been obtained before generation proceeds
+- the approved set has been staged under the shared request structure from `CLAUDE.md`
+- provenance is clear enough for downstream review
+- any required local-to-S3 mirroring has been satisfied or the failure has been surfaced explicitly
+- the next skill can use the staged set without needing to rediscover documents
 - any missing, conflicting, or inaccessible documents are called out explicitly

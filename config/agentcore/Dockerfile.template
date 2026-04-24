@@ -1,0 +1,24 @@
+FROM __PYTHON_BASE_IMAGE__
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN mkdir -p /app/data
+
+ENV PYTHONUNBUFFERED="1"
+ENV PYTHONDONTWRITEBYTECODE="1"
+ENV CLAUDE_CODE_USE_BEDROCK="1"
+ENV AWS_REGION="__AWS_REGION__"
+ENV ANTHROPIC_MODEL="__ANTHROPIC_MODEL__"
+ENV ANTHROPIC_SMALL_FAST_MODEL="__ANTHROPIC_SMALL_FAST_MODEL__"
+__OPTIONAL_ENV_BLOCK__
+
+EXPOSE 8080
+
+CMD ["python", "__ENTRYPOINT__"]
