@@ -29,5 +29,4 @@ Tools are opt-in via the `AGENT_TOOLS` environment variable. Add only the tools 
 
 ## File Contract
 
-- Local: `data/results/<request_id>/{request,deliverables}`
-- S3 when configured: `s3://<S3_BUCKET>/agents/<agent-name>/results/<request_id>/{request,deliverables}`
+- Local: `results/<request_id>/{request,deliverables}`

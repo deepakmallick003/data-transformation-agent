@@ -15,11 +15,11 @@ This skill is about:
 - extracting mappings, rules, dependencies, validations, and rejection logic
 - identifying implementation decisions that still require user choice
 - choosing a deterministic Python implementation shape only after the choice boundary is resolved
-- generating grounded code and related runtime artifacts using the shared storage contract from `CLAUDE.md`
+- generating grounded code and related runtime artifacts using the local storage contract from `CLAUDE.md`
 
 Do not invent business logic that the documents do not support.
 Do not stop at a raw script if the output would be hard to run, review, or test.
-Do not define alternate storage policy here. Use the shared storage and mirroring rules from
+Do not define alternate storage policy here. Use the local storage rules from
 `CLAUDE.md` and the relevant metadata such as `s3_structure.md`.
 
 ## Use This Skill When
@@ -128,7 +128,7 @@ Do not invent a custom architecture when one of these profiles is sufficient.
 11. Add the supporting run guidance needed to make the output usable.
 12. Generate supporting configuration artifacts only when the document set or chosen profile implies they are needed.
 13. Make assumptions visible in comments or a short module docstring instead of burying them in logic.
-14. Store the generated outputs using the shared storage contract from `CLAUDE.md`.
+14. Store the generated outputs using the local storage contract from `CLAUDE.md`.
 15. Package the generated bundle when the workflow or user would benefit from a handoff-ready artifact.
 
 Prefer a clear working implementation over a large speculative framework.
@@ -168,9 +168,8 @@ Before completing the skill, verify all of the following:
 - the document set was approved for generation
 - required user design choices were resolved, or unattended mode was explicitly enabled
 - the selected implementation profile matches the request and documents
-- the generated files are stored under the shared request structure from `CLAUDE.md`
-- files were not dumped loosely into an unstructured location outside the shared request structure
-- any required local-to-S3 mirroring expectations have been satisfied for this workflow
+- the generated files are stored under the local request structure from `CLAUDE.md`
+- files were not dumped loosely into an unstructured location outside the local request structure
 - the generated code passed the feasible validation checks
 - the support files accurately describe assumptions and gaps
 
@@ -243,7 +242,7 @@ should be explained in the generated `README.md`, which should distinguish:
 
 ## Output Handling
 
-Write generated outputs using the shared storage contract from `CLAUDE.md`.
+Write generated outputs using the local storage contract from `CLAUDE.md`.
 Do not define a competing output layout in this skill.
 
 For this skill:
@@ -251,9 +250,8 @@ For this skill:
 - generated code and support files belong in request-scoped `deliverables/`
 - staged source documents remain under `request/`
 - if packaging is required, the package should reflect the deliverables exactly
-- if local request artifacts are mirrored to S3 for this workflow, ensure the mirrored state stays aligned before completion
 
-Keep the output paths deterministic within the shared request structure so downstream steps can reference them reliably.
+Keep the output paths deterministic within the local request structure so downstream steps can reference them reliably.
 
 ## Supporting Files
 
@@ -303,13 +301,13 @@ configuration file, feed definition, orchestration input, or schema-like metadat
 ## Packaging
 
 When the generated output is intended for handoff, delivery, or download, provide a single bundled
-artifact at the request level or another nearby handoff location.
+artifact under the current request result folder.
 
 - prefer a zip archive of the generated script and supporting files
 - ensure the archive contents match the staged outputs exactly
 - include supporting files only when they are needed for delivery
-- include the source documents themselves only when the workflow explicitly requires a self-contained bundle and doing so does not violate the shared storage contract
-- reuse the already-staged request evidence rather than creating loose duplicate copies in unrelated working locations
+- include the source documents themselves only when the user explicitly asks for a self-contained bundle
+- reuse the already-staged request documents rather than creating loose duplicate copies in unrelated working locations
 - do not omit `README.md`, YAML configuration artifacts, or required configuration examples from the archive when they are part of the deliverable
 - exclude transient artifacts such as `__pycache__`, compiled bytecode, temporary outputs, or local editor files
 - ensure the archive remains usable when extracted outside the original repository
@@ -363,9 +361,9 @@ This skill has done its job when:
 - any required design choices have been resolved or explicitly defaulted under unattended mode
 - the generated Python reflects the documented mappings and rules
 - assumptions and unresolved gaps are visible instead of hidden
-- the generated artifacts live under the shared request structure from `CLAUDE.md`
+- the generated artifacts live under the local request structure from `CLAUDE.md`
 - any needed environment template is included without exposing secrets
 - the output is structured so another engineer can run and test it
 - a single bundled artifact is produced when handoff packaging is useful
-- the workflow has not violated any shared storage or mirroring rule
+- the workflow has not violated any local storage rule
 - another engineer can see how the code connects back to the transformation documents

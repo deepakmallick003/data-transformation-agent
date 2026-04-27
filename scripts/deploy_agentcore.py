@@ -68,15 +68,6 @@ def resolve_agent_name(default_name: str) -> str:
     return cleaned[:47] or "agentcore_agent"
 
 
-def shared_result_prefixes(agent_name: str) -> tuple[str, ...]:
-    """Return the base S3 prefixes used by this agent."""
-    return (
-        "agents/",
-        f"agents/{agent_name}/",
-        f"agents/{agent_name}/results/",
-    )
-
-
 def require_env(name: str) -> str:
     value = os.getenv(name, "").strip()
     if not value:
@@ -150,10 +141,6 @@ def resolve_codebuild_source_bucket() -> str:
     return f"bedrock-agentcore-codebuild-sources-{resolve_account_id()}-{require_env('AWS_REGION')}"
 
 
-def resolve_shared_request_bucket() -> str:
-    return require_env("S3_BUCKET")
-
-
 def resolve_memory_mode() -> str:
     mode = os.getenv("AGENTCORE_MEMORY_MODE", "STM_ONLY").strip().upper()
     valid_modes = {"NO_MEMORY", "STM_ONLY", "STM_AND_LTM"}
@@ -214,7 +201,6 @@ def render_outputs() -> tuple[str, str]:
 
 
 def prepare() -> None:
-    ensure_shared_request_bucket()
     dockerfile_text, agentcore_yaml_text = render_outputs()
     dockerfile_path = ROOT / "Dockerfile"
     agentcore_path = ROOT / ".bedrock_agentcore.yaml"
@@ -347,24 +333,6 @@ def ensure_codebuild_source_bucket() -> None:
     ensure_bucket(resolve_codebuild_source_bucket(), "deployment bucket")
 
 
-def ensure_request_prefix_placeholders(bucket_name: str, agent_name: str) -> None:
-    s3 = boto3.client("s3", region_name=require_env("AWS_REGION"))
-    prefixes = shared_result_prefixes(agent_name)
-    for prefix in prefixes:
-        s3.put_object(Bucket=bucket_name, Key=prefix)
-    print(
-        "Ensured shared result prefixes: "
-        + ", ".join(prefixes)
-    )
-
-
-def ensure_shared_request_bucket() -> None:
-    bucket_name = resolve_shared_request_bucket()
-    agent_name = resolve_agent_name(ROOT.name)
-    ensure_bucket(bucket_name, "shared result bucket")
-    ensure_request_prefix_placeholders(bucket_name, agent_name)
-
-
 def check() -> None:
     print(f"Deployment config: {DEPLOY_DIR}")
     print(f"AWS region: {require_env('AWS_REGION')}")
@@ -376,7 +344,6 @@ def check() -> None:
     print(f"AWS account: {resolve_account_id()}")
     print(f"Execution role: {resolve_role_arn()}")
     print(f"Deployment bucket: {resolve_codebuild_source_bucket()}")
-    print(f"Shared result bucket: {os.getenv('S3_BUCKET', '<unset>').strip() or '<unset>'}")
     print(f"AgentCore memory mode: {resolve_memory_mode()}")
     print("Deployment templates are ready to be written with `prepare` or `deploy`.")
 
@@ -394,7 +361,6 @@ def write_deploy_files() -> tuple[Path, Path]:
 def deploy() -> None:
     ensure_execution_role()
     ensure_codebuild_source_bucket()
-    ensure_shared_request_bucket()
     write_deploy_files()
     code = run([resolve_agentcore(), "deploy", "--auto-update-on-conflict"])
     raise SystemExit(code)
