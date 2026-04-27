@@ -1,8 +1,0 @@
-{
-  "name": "transformation-delivery-helper",
-  "description": "Local plugin that adds reusable approval and evidence support for transformation work.",
-  "version": "1.0.0",
-  "author": {
-    "name": "OpenAI Codex"
-  }
-}
