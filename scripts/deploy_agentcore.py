@@ -36,6 +36,24 @@ OPTIONAL_ENV_KEYS = [
     "S3_MAX_OBJECT_BYTES",
 ]
 
+DEPLOY_BUCKET_TAG_KEYS = [
+    "AWS_TAG_CREATEDBY",
+    "AWS_TAG_PURPOSE",
+    "AWS_TAG_PROJECT",
+    "AWS_TAG_ENVIRONMENT",
+    "AWS_TAG_OWNER",
+    "AWS_TAG_EXPIRYDATE",
+]
+
+DEPLOY_BUCKET_TAG_NAME_MAP = {
+    "AWS_TAG_CREATEDBY": "CreatedBy",
+    "AWS_TAG_PURPOSE": "Purpose",
+    "AWS_TAG_PROJECT": "Project",
+    "AWS_TAG_ENVIRONMENT": "Environment",
+    "AWS_TAG_OWNER": "Owner",
+    "AWS_TAG_EXPIRYDATE": "ExpiryDate",
+}
+
 
 def load_env() -> None:
     if ENV_FILE.exists():
@@ -117,6 +135,10 @@ def resolve_platform() -> str:
     return "linux/arm64" if machine in {"arm64", "aarch64"} else "linux/amd64"
 
 
+def resolve_codebuild_source_bucket() -> str:
+    return f"bedrock-agentcore-codebuild-sources-{resolve_account_id()}-{require_env('AWS_REGION')}"
+
+
 def render(text: str, values: dict[str, str]) -> str:
     for key in sorted(values, key=len, reverse=True):
         value = values[key]
@@ -152,6 +174,7 @@ def build_render_values() -> dict[str, str]:
         "PLATFORM": resolve_platform(),
         "EXECUTION_ROLE_ARN": resolve_role_arn(),
         "AWS_ACCOUNT_ID": account_id,
+        "CODEBUILD_SOURCE_BUCKET": resolve_codebuild_source_bucket(),
         "S3_BUCKET": os.getenv("S3_BUCKET", "YOUR_BUCKET_NAME").strip() or "YOUR_BUCKET_NAME",
     }
 
@@ -209,6 +232,91 @@ def ensure_execution_role() -> None:
     print(f"Applied inline IAM policy: {policy_name}")
 
 
+def normalize_bucket_region(location: str | None) -> str:
+    if not location:
+        return "us-east-1"
+    if location == "EU":
+        return "eu-west-1"
+    return location
+
+
+def deploy_bucket_tags() -> list[dict[str, str]]:
+    tags: list[dict[str, str]] = []
+    missing: list[str] = []
+    for key in DEPLOY_BUCKET_TAG_KEYS:
+        value = os.getenv(key, "").strip()
+        if not value:
+            missing.append(key)
+        else:
+            tags.append({"Key": DEPLOY_BUCKET_TAG_NAME_MAP[key], "Value": value})
+    if missing:
+        raise SystemExit(
+            "Missing required environment variables for deployment bucket tagging: "
+            + ", ".join(missing)
+        )
+    return tags
+
+
+def ensure_codebuild_source_bucket() -> None:
+    account_id = resolve_account_id()
+    region = require_env("AWS_REGION")
+    bucket_name = resolve_codebuild_source_bucket()
+    s3 = boto3.client("s3", region_name=region)
+
+    try:
+        s3.head_bucket(Bucket=bucket_name, ExpectedBucketOwner=account_id)
+        location = s3.get_bucket_location(
+            Bucket=bucket_name,
+            ExpectedBucketOwner=account_id,
+        )
+        bucket_region = normalize_bucket_region(location.get("LocationConstraint"))
+        if bucket_region != region:
+            raise SystemExit(
+                f"Deployment bucket {bucket_name} exists in {bucket_region}, expected {region}."
+            )
+        print(f"Using existing deployment bucket: {bucket_name}")
+        return
+    except ClientError as exc:
+        error = exc.response.get("Error", {})
+        code = error.get("Code", "")
+        status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+        bucket_region = exc.response.get("ResponseMetadata", {}).get("HTTPHeaders", {}).get(
+            "x-amz-bucket-region"
+        )
+        if code in {"404", "NoSuchBucket", "NotFound"} or status == 404:
+            pass
+        elif code in {"301", "PermanentRedirect"} or status == 301:
+            raise SystemExit(
+                f"Deployment bucket {bucket_name} exists in {bucket_region or 'another region'}, expected {region}."
+            ) from exc
+        elif code in {"403", "AccessDenied"} or status == 403:
+            raise SystemExit(
+                f"Deployment bucket {bucket_name} exists but is not accessible in account {account_id}."
+            ) from exc
+        else:
+            raise
+
+    tags = deploy_bucket_tags()
+    create_args: dict[str, object] = {
+        "Bucket": bucket_name,
+        "CreateBucketConfiguration": {
+            "LocationConstraint": region,
+            "Tags": tags,
+        },
+    }
+    if region == "us-east-1":
+        create_args["CreateBucketConfiguration"] = {"Tags": tags}
+
+    try:
+        s3.create_bucket(**create_args)
+    except ClientError as exc:
+        raise SystemExit(
+            f"Failed to create deployment bucket {bucket_name}. "
+            "Check bucket-tag permissions and org tag policies."
+        ) from exc
+    print(f"Created deployment bucket: {bucket_name}")
+
+
 def check() -> None:
     print(f"Deployment config: {DEPLOY_DIR}")
     print(f"AWS region: {require_env('AWS_REGION')}")
@@ -219,6 +327,7 @@ def check() -> None:
     print(f"Docker: {docker_bin}")
     print(f"AWS account: {resolve_account_id()}")
     print(f"Execution role: {resolve_role_arn()}")
+    print(f"Deployment bucket: {resolve_codebuild_source_bucket()}")
     render_outputs()
     print("Deployment templates render successfully.")
 
@@ -235,6 +344,7 @@ def write_deploy_files() -> tuple[Path, Path]:
 
 def deploy(keep_files: bool) -> None:
     ensure_execution_role()
+    ensure_codebuild_source_bucket()
     dockerfile_path, agentcore_path = write_deploy_files()
     try:
         code = run([resolve_agentcore(), "deploy"])

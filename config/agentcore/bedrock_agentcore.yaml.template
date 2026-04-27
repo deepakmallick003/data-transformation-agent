@@ -32,7 +32,7 @@ agents:
     codebuild:
       project_name: null
       execution_role: null
-      source_bucket: null
+      source_bucket: __CODEBUILD_SOURCE_BUCKET__
     memory:
       mode: NO_MEMORY
       memory_id: null
