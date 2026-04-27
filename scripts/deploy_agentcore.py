@@ -61,9 +61,10 @@ def load_env() -> None:
 
 
 def sanitize_name(value: str) -> str:
-    cleaned = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in value.strip())
+    cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in value.strip())
     cleaned = "_".join(part for part in cleaned.split("_") if part)
-    return cleaned.lower() or "agentcore_agent"
+    cleaned = cleaned.strip("_").lower()
+    return (cleaned[:47] or "agentcore_agent")
 
 
 def require_env(name: str) -> str:
