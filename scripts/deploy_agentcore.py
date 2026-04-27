@@ -350,7 +350,7 @@ def deploy() -> None:
     ensure_execution_role()
     ensure_codebuild_source_bucket()
     write_deploy_files()
-    code = run([resolve_agentcore(), "deploy"])
+    code = run([resolve_agentcore(), "deploy", "--auto-update-on-conflict"])
     raise SystemExit(code)
 
 
