@@ -188,9 +188,13 @@ def render_outputs() -> tuple[str, str]:
 
 
 def prepare() -> None:
-    render_outputs()
-    print("Deployment templates rendered successfully.")
-    print("`deploy` will use temporary deployment config only for the AgentCore CLI run and will not leave generated files behind.")
+    dockerfile_text, agentcore_yaml_text = render_outputs()
+    dockerfile_path = ROOT / "Dockerfile"
+    agentcore_path = ROOT / ".bedrock_agentcore.yaml"
+    dockerfile_path.write_text(dockerfile_text, encoding="utf-8")
+    agentcore_path.write_text(agentcore_yaml_text, encoding="utf-8")
+    print(f"Wrote {dockerfile_path}")
+    print(f"Wrote {agentcore_path}")
 
 
 def ensure_execution_role() -> None:
@@ -329,8 +333,7 @@ def check() -> None:
     print(f"AWS account: {resolve_account_id()}")
     print(f"Execution role: {resolve_role_arn()}")
     print(f"Deployment bucket: {resolve_codebuild_source_bucket()}")
-    render_outputs()
-    print("Deployment templates render successfully.")
+    print("Deployment templates are ready to be written with `prepare` or `deploy`.")
 
 
 def write_deploy_files() -> tuple[Path, Path]:
@@ -343,16 +346,11 @@ def write_deploy_files() -> tuple[Path, Path]:
     return dockerfile_path, agentcore_path
 
 
-def deploy(keep_files: bool) -> None:
+def deploy() -> None:
     ensure_execution_role()
     ensure_codebuild_source_bucket()
-    dockerfile_path, agentcore_path = write_deploy_files()
-    try:
-        code = run([resolve_agentcore(), "deploy"])
-    finally:
-        if not keep_files:
-            dockerfile_path.unlink(missing_ok=True)
-            agentcore_path.unlink(missing_ok=True)
+    write_deploy_files()
+    code = run([resolve_agentcore(), "deploy"])
     raise SystemExit(code)
 
 
@@ -376,12 +374,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("check")
     sub.add_parser("prepare")
-    deploy_parser = sub.add_parser("deploy")
-    deploy_parser.add_argument(
-        "--keep-files",
-        action="store_true",
-        help="Keep rendered Dockerfile and .bedrock_agentcore.yaml in the repo root after deploy.",
-    )
+    sub.add_parser("deploy")
     sub.add_parser("status")
     invoke_parser = sub.add_parser("invoke")
     invoke_parser.add_argument("query")
@@ -399,7 +392,7 @@ def main() -> None:
     elif args.command == "prepare":
         prepare()
     elif args.command == "deploy":
-        deploy(args.keep_files)
+        deploy()
     elif args.command == "status":
         status()
     elif args.command == "invoke":

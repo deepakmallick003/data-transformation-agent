@@ -80,16 +80,16 @@ python -m dotenv run -- python scripts/deploy_agentcore.py deploy
 The deployment helper will:
 
 - create or update the IAM execution role from the trust and permissions templates unless `AGENTCORE_EXECUTION_ROLE_ARN` is explicitly provided
-- render the Dockerfile and AgentCore YAML only for the duration of the deploy command
+- write `Dockerfile` and `.bedrock_agentcore.yaml` in the repo root
 - run `agentcore deploy`
-
-If you want to inspect the rendered deployment files locally, run `python scripts/deploy_agentcore.py deploy --keep-files`. That will keep `Dockerfile` and `.bedrock_agentcore.yaml` in the repo root and overwrite older copies if they already exist. Without `--keep-files`, the helper deletes them again after the deploy attempt to keep the repo clean.
 
 If you only want to validate that the deployment templates and environment values resolve cleanly, run:
 
 ```bash
 python scripts/deploy_agentcore.py prepare
 ```
+
+That command writes `Dockerfile` and `.bedrock_agentcore.yaml` in the repo root without starting a deployment.
 
 Check deployment status:
 
