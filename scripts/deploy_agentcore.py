@@ -223,29 +223,25 @@ def check() -> None:
     print("Deployment templates render successfully.")
 
 
-def with_temporary_deploy_files() -> tuple[Path, Path]:
+def write_deploy_files() -> tuple[Path, Path]:
     dockerfile_text, agentcore_yaml_text = render_outputs()
     dockerfile_path = ROOT / "Dockerfile"
     agentcore_path = ROOT / ".bedrock_agentcore.yaml"
-
-    if dockerfile_path.exists() or agentcore_path.exists():
-        raise SystemExit(
-            "Refusing to overwrite an existing Dockerfile or .bedrock_agentcore.yaml in the repo root."
-        )
 
     dockerfile_path.write_text(dockerfile_text, encoding="utf-8")
     agentcore_path.write_text(agentcore_yaml_text, encoding="utf-8")
     return dockerfile_path, agentcore_path
 
 
-def deploy() -> None:
+def deploy(keep_files: bool) -> None:
     ensure_execution_role()
-    dockerfile_path, agentcore_path = with_temporary_deploy_files()
+    dockerfile_path, agentcore_path = write_deploy_files()
     try:
         code = run([resolve_agentcore(), "deploy"])
     finally:
-        dockerfile_path.unlink(missing_ok=True)
-        agentcore_path.unlink(missing_ok=True)
+        if not keep_files:
+            dockerfile_path.unlink(missing_ok=True)
+            agentcore_path.unlink(missing_ok=True)
     raise SystemExit(code)
 
 
@@ -269,7 +265,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("check")
     sub.add_parser("prepare")
-    sub.add_parser("deploy")
+    deploy_parser = sub.add_parser("deploy")
+    deploy_parser.add_argument(
+        "--keep-files",
+        action="store_true",
+        help="Keep rendered Dockerfile and .bedrock_agentcore.yaml in the repo root after deploy.",
+    )
     sub.add_parser("status")
     invoke_parser = sub.add_parser("invoke")
     invoke_parser.add_argument("query")
@@ -287,7 +288,7 @@ def main() -> None:
     elif args.command == "prepare":
         prepare()
     elif args.command == "deploy":
-        deploy()
+        deploy(args.keep_files)
     elif args.command == "status":
         status()
     elif args.command == "invoke":

@@ -91,6 +91,8 @@ The deployment helper will:
 - render the Dockerfile and AgentCore YAML only for the duration of the deploy command
 - run `agentcore deploy`
 
+If you want to inspect the rendered deployment files locally, run `python scripts/deploy_agentcore.py deploy --keep-files`. That will keep `Dockerfile` and `.bedrock_agentcore.yaml` in the repo root and overwrite older copies if they already exist. Without `--keep-files`, the helper deletes them again after the deploy attempt to keep the repo clean.
+
 If you only want to validate that the deployment templates and environment values resolve cleanly, run:
 
 ```bash
