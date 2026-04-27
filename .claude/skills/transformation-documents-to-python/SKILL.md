@@ -15,7 +15,7 @@ This skill is about:
 - extracting mappings, rules, dependencies, validations, and rejection logic
 - identifying implementation decisions that still require user choice
 - choosing a deterministic Python implementation shape only after the choice boundary is resolved
-- generating grounded code and related runtime artifacts using the shared request storage contract from `CLAUDE.md`
+- generating grounded code and related runtime artifacts using the shared storage contract from `CLAUDE.md`
 
 Do not invent business logic that the documents do not support.
 Do not stop at a raw script if the output would be hard to run, review, or test.
@@ -27,7 +27,7 @@ Do not define alternate storage policy here. Use the shared storage and mirrorin
 - the relevant transformation documents have already been resolved and staged
 - the user wants Python implementation output from those documents
 - the implementation needs to reflect multiple related documents, not just one file
-- the code should stay traceable to the document evidence
+- the code should stay grounded in the document evidence
 
 If document resolution is still uncertain, use `transformation-document-resolution` first.
 If the document set was discovered by the agent rather than directly supplied in the current
@@ -56,7 +56,7 @@ Look for:
 
 Treat specification, transformation, and interdependency documents as complementary evidence.
 
-## Provenance Gate
+## Source Gate
 
 Only proceed directly to code generation when one of these is true:
 
@@ -128,7 +128,7 @@ Do not invent a custom architecture when one of these profiles is sufficient.
 11. Add the supporting run guidance needed to make the output usable.
 12. Generate supporting configuration artifacts only when the document set or chosen profile implies they are needed.
 13. Make assumptions visible in comments or a short module docstring instead of burying them in logic.
-14. Store the generated outputs using the shared request storage contract from `CLAUDE.md`.
+14. Store the generated outputs using the shared storage contract from `CLAUDE.md`.
 15. Package the generated bundle when the workflow or user would benefit from a handoff-ready artifact.
 
 Prefer a clear working implementation over a large speculative framework.
@@ -216,7 +216,7 @@ Examples of scenarios that should trigger this behavior include:
 - Do not fabricate join keys, default values, or target fields that are not supported.
 - If a required detail is missing, leave a clear assumption or a deliberate placeholder rather than pretending certainty.
 - Keep rejection and validation logic aligned with the documented rules.
-- Preserve business terminology from the documents where that improves traceability.
+- Preserve business terminology from the documents where that improves clarity.
 - Do not treat agent-discovered documents as implicitly approved just because they look plausible.
 
 When documents conflict, implement only the defensible core and call out the conflict explicitly.
@@ -243,13 +243,13 @@ should be explained in the generated `README.md`, which should distinguish:
 
 ## Output Handling
 
-Write generated outputs using the shared request storage contract from `CLAUDE.md`.
+Write generated outputs using the shared storage contract from `CLAUDE.md`.
 Do not define a competing output layout in this skill.
 
 For this skill:
 
-- generated code and support files belong in request-scoped `deliverables/` and, where appropriate, machine-readable build artifacts may also appear in `work/`
-- staged source documents remain in `evidence/` and should not be copied casually into unrelated working locations
+- generated code and support files belong in request-scoped `deliverables/`
+- staged source documents remain under `request/`
 - if packaging is required, the package should reflect the deliverables exactly
 - if local request artifacts are mirrored to S3 for this workflow, ensure the mirrored state stays aligned before completion
 
@@ -307,7 +307,7 @@ artifact at the request level or another nearby handoff location.
 
 - prefer a zip archive of the generated script and supporting files
 - ensure the archive contents match the staged outputs exactly
-- include evidence references or manifests when needed for traceability
+- include supporting files only when they are needed for delivery
 - include the source documents themselves only when the workflow explicitly requires a self-contained bundle and doing so does not violate the shared storage contract
 - reuse the already-staged request evidence rather than creating loose duplicate copies in unrelated working locations
 - do not omit `README.md`, YAML configuration artifacts, or required configuration examples from the archive when they are part of the deliverable
@@ -359,7 +359,7 @@ Include concise comments only where they help connect tricky logic to the docume
 This skill has done its job when:
 
 - the staged document set has been read as one implementation input
-- the document provenance is direct or explicitly user-confirmed
+- the document source is direct or explicitly user-confirmed
 - any required design choices have been resolved or explicitly defaulted under unattended mode
 - the generated Python reflects the documented mappings and rules
 - assumptions and unresolved gaps are visible instead of hidden

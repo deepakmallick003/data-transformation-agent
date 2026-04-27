@@ -15,7 +15,6 @@ import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
-
 ROOT = Path(__file__).resolve().parents[1]
 ENV_FILE = ROOT / ".env"
 DEPLOY_DIR = ROOT / "config" / "agentcore"
@@ -60,11 +59,22 @@ def load_env() -> None:
         load_dotenv(ENV_FILE, override=True)
 
 
-def sanitize_name(value: str) -> str:
-    cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in value.strip())
+def resolve_agent_name(default_name: str) -> str:
+    """Resolve the shared agent name from env or project defaults."""
+    raw_name = os.getenv("AGENTCORE_AGENT_NAME", default_name)
+    cleaned = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in raw_name.strip())
     cleaned = "_".join(part for part in cleaned.split("_") if part)
     cleaned = cleaned.strip("_").lower()
-    return (cleaned[:47] or "agentcore_agent")
+    return cleaned[:47] or "agentcore_agent"
+
+
+def shared_result_prefixes(agent_name: str) -> tuple[str, ...]:
+    """Return the base S3 prefixes used by this agent."""
+    return (
+        "agents/",
+        f"agents/{agent_name}/",
+        f"agents/{agent_name}/results/",
+    )
 
 
 def require_env(name: str) -> str:
@@ -140,6 +150,21 @@ def resolve_codebuild_source_bucket() -> str:
     return f"bedrock-agentcore-codebuild-sources-{resolve_account_id()}-{require_env('AWS_REGION')}"
 
 
+def resolve_shared_request_bucket() -> str:
+    return require_env("S3_BUCKET")
+
+
+def resolve_memory_mode() -> str:
+    mode = os.getenv("AGENTCORE_MEMORY_MODE", "STM_ONLY").strip().upper()
+    valid_modes = {"NO_MEMORY", "STM_ONLY", "STM_AND_LTM"}
+    if mode not in valid_modes:
+        raise SystemExit(
+            "AGENTCORE_MEMORY_MODE must be one of: "
+            + ", ".join(sorted(valid_modes))
+        )
+    return mode
+
+
 def render(text: str, values: dict[str, str]) -> str:
     for key in sorted(values, key=len, reverse=True):
         value = values[key]
@@ -158,7 +183,7 @@ def optional_env_block() -> str:
 
 
 def build_render_values() -> dict[str, str]:
-    agent_name = sanitize_name(os.getenv("AGENTCORE_AGENT_NAME", ROOT.name))
+    agent_name = resolve_agent_name(ROOT.name)
     account_id = resolve_account_id()
     aws_region = require_env("AWS_REGION")
     return {
@@ -177,6 +202,7 @@ def build_render_values() -> dict[str, str]:
         "AWS_ACCOUNT_ID": account_id,
         "CODEBUILD_SOURCE_BUCKET": resolve_codebuild_source_bucket(),
         "S3_BUCKET": os.getenv("S3_BUCKET", "YOUR_BUCKET_NAME").strip() or "YOUR_BUCKET_NAME",
+        "AGENTCORE_MEMORY_MODE": resolve_memory_mode(),
     }
 
 
@@ -188,6 +214,7 @@ def render_outputs() -> tuple[str, str]:
 
 
 def prepare() -> None:
+    ensure_shared_request_bucket()
     dockerfile_text, agentcore_yaml_text = render_outputs()
     dockerfile_path = ROOT / "Dockerfile"
     agentcore_path = ROOT / ".bedrock_agentcore.yaml"
@@ -262,10 +289,9 @@ def deploy_bucket_tags() -> list[dict[str, str]]:
     return tags
 
 
-def ensure_codebuild_source_bucket() -> None:
+def ensure_bucket(bucket_name: str, purpose: str) -> None:
     account_id = resolve_account_id()
     region = require_env("AWS_REGION")
-    bucket_name = resolve_codebuild_source_bucket()
     s3 = boto3.client("s3", region_name=region)
 
     try:
@@ -277,9 +303,9 @@ def ensure_codebuild_source_bucket() -> None:
         bucket_region = normalize_bucket_region(location.get("LocationConstraint"))
         if bucket_region != region:
             raise SystemExit(
-                f"Deployment bucket {bucket_name} exists in {bucket_region}, expected {region}."
+                f"{purpose} {bucket_name} exists in {bucket_region}, expected {region}."
             )
-        print(f"Using existing deployment bucket: {bucket_name}")
+        print(f"Using existing {purpose}: {bucket_name}")
         return
     except ClientError as exc:
         error = exc.response.get("Error", {})
@@ -292,34 +318,51 @@ def ensure_codebuild_source_bucket() -> None:
             pass
         elif code in {"301", "PermanentRedirect"} or status == 301:
             raise SystemExit(
-                f"Deployment bucket {bucket_name} exists in {bucket_region or 'another region'}, expected {region}."
+                f"{purpose} {bucket_name} exists in {bucket_region or 'another region'}, expected {region}."
             ) from exc
         elif code in {"403", "AccessDenied"} or status == 403:
             raise SystemExit(
-                f"Deployment bucket {bucket_name} exists but is not accessible in account {account_id}."
+                f"{purpose} {bucket_name} exists but is not accessible in account {account_id}."
             ) from exc
         else:
             raise
 
     tags = deploy_bucket_tags()
-    create_args: dict[str, object] = {
-        "Bucket": bucket_name,
-        "CreateBucketConfiguration": {
-            "LocationConstraint": region,
-            "Tags": tags,
-        },
-    }
-    if region == "us-east-1":
-        create_args["CreateBucketConfiguration"] = {"Tags": tags}
+    create_args: dict[str, object] = {"Bucket": bucket_name}
+    if region != "us-east-1":
+        create_args["CreateBucketConfiguration"] = {"LocationConstraint": region}
 
     try:
         s3.create_bucket(**create_args)
+        s3.put_bucket_tagging(Bucket=bucket_name, Tagging={"TagSet": tags})
     except ClientError as exc:
         raise SystemExit(
-            f"Failed to create deployment bucket {bucket_name}. "
+            f"Failed to create {purpose} {bucket_name}. "
             "Check bucket-tag permissions and org tag policies."
         ) from exc
-    print(f"Created deployment bucket: {bucket_name}")
+    print(f"Created {purpose}: {bucket_name}")
+
+
+def ensure_codebuild_source_bucket() -> None:
+    ensure_bucket(resolve_codebuild_source_bucket(), "deployment bucket")
+
+
+def ensure_request_prefix_placeholders(bucket_name: str, agent_name: str) -> None:
+    s3 = boto3.client("s3", region_name=require_env("AWS_REGION"))
+    prefixes = shared_result_prefixes(agent_name)
+    for prefix in prefixes:
+        s3.put_object(Bucket=bucket_name, Key=prefix)
+    print(
+        "Ensured shared result prefixes: "
+        + ", ".join(prefixes)
+    )
+
+
+def ensure_shared_request_bucket() -> None:
+    bucket_name = resolve_shared_request_bucket()
+    agent_name = resolve_agent_name(ROOT.name)
+    ensure_bucket(bucket_name, "shared result bucket")
+    ensure_request_prefix_placeholders(bucket_name, agent_name)
 
 
 def check() -> None:
@@ -333,6 +376,8 @@ def check() -> None:
     print(f"AWS account: {resolve_account_id()}")
     print(f"Execution role: {resolve_role_arn()}")
     print(f"Deployment bucket: {resolve_codebuild_source_bucket()}")
+    print(f"Shared result bucket: {os.getenv('S3_BUCKET', '<unset>').strip() or '<unset>'}")
+    print(f"AgentCore memory mode: {resolve_memory_mode()}")
     print("Deployment templates are ready to be written with `prepare` or `deploy`.")
 
 
@@ -349,6 +394,7 @@ def write_deploy_files() -> tuple[Path, Path]:
 def deploy() -> None:
     ensure_execution_role()
     ensure_codebuild_source_bucket()
+    ensure_shared_request_bucket()
     write_deploy_files()
     code = run([resolve_agentcore(), "deploy", "--auto-update-on-conflict"])
     raise SystemExit(code)

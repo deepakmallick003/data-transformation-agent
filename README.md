@@ -43,11 +43,38 @@ python scripts/invoke_agentcore.py --dev "user query"
 
 Replace `"user query"` with the prompt you want to test.
 
+## Request Storage
+
+`agent/agent_app.py` owns the request-storage contract.
+
+Local request storage is:
+
+```text
+data/results/<request_id>/
+├── request/
+└── deliverables/
+```
+
+If `S3_BUCKET` is configured, the shared S3 mirror layout is:
+
+```text
+s3://<S3_BUCKET>/
+└── agents/
+    └── <agent-name>/
+        └── results/
+            └── <request_id>/
+                ├── request/
+                └── deliverables/
+```
+
+The local path starts directly at `results/`.
+Only the shared S3 bucket adds `agents/<agent-name>/` so multiple agents can safely share one bucket.
+
 ## Adding a New Skill
 
 1. Create `.claude/skills/<domain>/SKILL.md`
 2. Add any referenced metadata files under `data/metadata/`
-3. Remove the placeholder skill `.claude/skills/example/` when ready
+3. Keep storage rules aligned with `agent/agent_app.py` and `CLAUDE.md`
 
 ## Deploy to AgentCore
 
@@ -66,8 +93,9 @@ For the normal flow, you do not need to edit the Dockerfile or AgentCore YAML te
 The deploy script fills in the Dockerfile, AgentCore YAML, trust policy, and execution-permissions policy from environment variables and uses fixed defaults for the rest.
 
 For IAM, the deploy script uses the AgentCore trust policy and execution-permissions templates in the root config area directly when it creates or updates the execution role.
-For deployment artifacts, it uses a fixed bucket name pattern: `bedrock-agentcore-codebuild-sources-<account-id>-<region>`. If that bucket does not exist, the deploy script creates it in the same account and region before running `agentcore deploy`.
-If the bucket must be created, the tag variables in `.env` are required. If they are missing, the deploy will fail with a clear message instead of attempting an untagged bucket create.
+For deployment artifacts, it uses a fixed bucket name pattern: `bedrock-agentcore-codebuild-sources-<account-id>-<region>`.
+For shared result storage, it uses the `S3_BUCKET` value from `.env`.
+If either bucket must be created, the tag variables in `.env` are required. If they are missing, the flow fails with a clear message instead of attempting an untagged bucket create.
 
 Prepare and deploy:
 
@@ -80,6 +108,8 @@ python -m dotenv run -- python scripts/deploy_agentcore.py deploy
 The deployment helper will:
 
 - create or update the IAM execution role from the trust and permissions templates unless `AGENTCORE_EXECUTION_ROLE_ARN` is explicitly provided
+- create the shared result bucket from `S3_BUCKET` when needed and bootstrap `agents/<agent-name>/results/`
+- create the CodeBuild source bucket when needed
 - write `Dockerfile` and `.bedrock_agentcore.yaml` in the repo root
 - run `agentcore deploy`
 
@@ -89,7 +119,7 @@ If you only want to validate that the deployment templates and environment value
 python scripts/deploy_agentcore.py prepare
 ```
 
-That command writes `Dockerfile` and `.bedrock_agentcore.yaml` in the repo root without starting a deployment.
+That command also ensures the shared result bucket and its base `agents/<agent-name>/results/` prefixes exist, then writes `Dockerfile` and `.bedrock_agentcore.yaml` in the repo root without starting a deployment.
 
 Check deployment status:
 

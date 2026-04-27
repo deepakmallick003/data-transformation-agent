@@ -34,7 +34,7 @@ agents:
       execution_role: null
       source_bucket: __CODEBUILD_SOURCE_BUCKET__
     memory:
-      mode: NO_MEMORY
+      mode: __AGENTCORE_MEMORY_MODE__
       memory_id: null
       memory_arn: null
       memory_name: null

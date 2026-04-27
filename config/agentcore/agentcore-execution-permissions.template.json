@@ -100,6 +100,34 @@
       ]
     },
     {
+      "Sid": "BedrockAgentCoreMemoryCreateMemory",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock-agentcore:CreateMemory"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "BedrockAgentCoreMemoryAccess",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock-agentcore:CreateEvent",
+        "bedrock-agentcore:GetEvent",
+        "bedrock-agentcore:GetMemory",
+        "bedrock-agentcore:GetMemoryRecord",
+        "bedrock-agentcore:ListActors",
+        "bedrock-agentcore:ListEvents",
+        "bedrock-agentcore:ListMemoryRecords",
+        "bedrock-agentcore:ListSessions",
+        "bedrock-agentcore:DeleteEvent",
+        "bedrock-agentcore:DeleteMemoryRecord",
+        "bedrock-agentcore:RetrieveMemoryRecords"
+      ],
+      "Resource": [
+        "arn:aws:bedrock-agentcore:__AWS_REGION__:__AWS_ACCOUNT_ID__:memory/*"
+      ]
+    },
+    {
       "Sid": "OptionalReadOnlyS3Access",
       "Effect": "Allow",
       "Action": [
