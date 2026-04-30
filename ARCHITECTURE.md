@@ -62,7 +62,7 @@
 │ • Read sources                                                       │
 │   - s3://<S3_READ_BUCKET>/<S3_READ_PREFIX>                           │
 │ • Request-scoped writes                                              │
-│   - s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>results/<request_id>/    │
+│   - s3://<S3_WRITE_BUCKET>/agents/<agent_name>/results/<request_id>/ │
 │     - request/                                                       │
 │     - deliverables/                                                  │
 │ • Local fallback                                                     │

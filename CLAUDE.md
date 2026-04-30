@@ -30,5 +30,5 @@ Tools are opt-in via the `AGENT_TOOLS` environment variable. Add only the tools 
 ## File Contract
 
 - Read sources from: `s3://<S3_READ_BUCKET>/<S3_READ_PREFIX>`
-- Primary write target: `s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>results/<request_id>/{request,deliverables}`
+- Primary write target: `s3://<S3_WRITE_BUCKET>/agents/<agent_name>/results/<request_id>/{request,deliverables}`
 - Local fallback when S3 write is unavailable: `results/<request_id>/{request,deliverables}`

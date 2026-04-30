@@ -72,7 +72,7 @@ The runtime uses the request-storage contract defined by `CLAUDE.md` and resolve
 Primary request storage is:
 
 ```text
-s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>results/<request_id>/
+s3://<S3_WRITE_BUCKET>/agents/<agent_name>/results/<request_id>/
 ├── request/
 └── deliverables/
 ```

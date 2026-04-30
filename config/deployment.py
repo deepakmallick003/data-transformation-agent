@@ -23,7 +23,6 @@ DEPLOY_OPTIONAL_ENV_KEYS = [
     "S3_READ_BUCKET",
     "S3_READ_PREFIX",
     "S3_WRITE_BUCKET",
-    "S3_WRITE_PREFIX",
     "S3_MAX_LIST_RESULTS",
     "S3_MAX_OBJECT_BYTES",
 ]
@@ -222,4 +221,3 @@ def render_policy_template(
         )
         policy["Statement"].extend(extra_statements)
     return json.dumps(policy)
-

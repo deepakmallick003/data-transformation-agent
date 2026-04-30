@@ -7,7 +7,6 @@ Optional:
     S3_READ_BUCKET         Bucket used for source reads
     S3_READ_PREFIX         Prefix used for source reads
     S3_WRITE_BUCKET        Bucket used for primary request-scoped writes
-    S3_WRITE_PREFIX        Prefix used for primary request-scoped writes
     S3_MAX_LIST_RESULTS    Max keys returned by list operation (default: 100)
     S3_MAX_OBJECT_BYTES    Max bytes read per object (default: 1 MB)
 """
@@ -64,13 +63,8 @@ def resolve_s3_settings(
 ) -> S3Settings:
     """Resolve the configured S3 read/write settings."""
     write_bucket = os.getenv("S3_WRITE_BUCKET", "").strip()
-    explicit_write_prefix = os.getenv("S3_WRITE_PREFIX", "").strip()
     if write_bucket:
-        write_prefix = (
-            normalize_s3_prefix(explicit_write_prefix)
-            if explicit_write_prefix
-            else normalize_s3_prefix(f"agents/{agent_name or resolve_agent_name()}/")
-        )
+        write_prefix = normalize_s3_prefix(f"agents/{agent_name or resolve_agent_name()}/")
     else:
         write_prefix = ""
 

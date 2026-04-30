@@ -19,7 +19,7 @@ s3://<S3_READ_BUCKET>/<S3_READ_PREFIX>
 Agent-produced request files are stored under the configured S3 write bucket and prefix.
 
 ```text
-s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>results/<request_id>/
+s3://<S3_WRITE_BUCKET>/agents/<agent_name>/results/<request_id>/
 ├── request/
 └── deliverables/
 ```
