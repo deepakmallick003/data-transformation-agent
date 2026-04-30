@@ -1,0 +1,31 @@
+[
+  {
+    "Sid": "ScopedS3WritePrefixAccess",
+    "Effect": "Allow",
+    "Action": [
+      "s3:ListBucket"
+    ],
+    "Resource": [
+      "arn:aws:s3:::__S3_WRITE_BUCKET__"
+    ],
+    "Condition": {
+      "StringLike": {
+        "s3:prefix": [
+          "__S3_WRITE_OBJECT_PATH__"
+        ]
+      }
+    }
+  },
+  {
+    "Sid": "ScopedS3WriteObjectAccess",
+    "Effect": "Allow",
+    "Action": [
+      "s3:GetObject",
+      "s3:PutObject"
+    ],
+    "Resource": [
+      "arn:aws:s3:::__S3_WRITE_BUCKET__/__S3_WRITE_OBJECT_PATH__"
+    ]
+  }
+]
+

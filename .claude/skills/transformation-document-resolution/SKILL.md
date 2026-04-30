@@ -16,18 +16,23 @@ This skill is about:
 - deciding which files belong to the same transformation request
 - handling single-document and multi-document cases
 - presenting the selected document set to the user in a structured way when confirmation is required
-- preparing the approved document set for downstream use in the local storage model defined by `CLAUDE.md`
+- preparing the approved document set for downstream use
+
+## Storage Note
+
+- `CLAUDE.md` defines the file contract.
+- Stage approved source files under `request/`.
+- Do not redefine bucket names, prefixes, or the root request layout in this skill.
 
 Do not generate transformation logic here beyond what is needed to justify document selection.
-Do not define alternate storage semantics here. Use the request storage contract from `CLAUDE.md`
-and any applicable source metadata such as `s3_structure.md`.
+Use the file contract and any applicable source metadata such as `s3_structure.md`.
 
 ## Use This Skill When
 
 - the request references a transformation but the document set is not yet assembled
 - the relevant files may exist in the current request or metadata-backed source locations
 - a transformation may have more than one supporting document
-- the agent may need to search permitted external sources and stage the results locally
+- the agent may need to search permitted external sources and stage the results into the request storage area
 - downstream code generation should work from a stable staged document set instead of ad hoc file paths
 
 ## Resolution Priorities
@@ -96,8 +101,8 @@ Follow these phases in order. Do not skip ahead.
 6. If multiple plausible sets exist, rank them by evidence strength and completeness instead of silently choosing one.
 7. Determine whether confirmation is required under the rules above.
 8. If confirmation is required, present the findings and stop until the user chooses or approves a set.
-9. If confirmation is not required, or has been received, stage the approved set using the local storage contract.
-10. Validate that the staged result satisfies the local structure before handoff.
+9. If confirmation is not required, or has been received, stage the approved set using the file contract.
+10. Validate that the staged result satisfies the request structure before handoff.
 
 ## Selection Rules
 
@@ -155,7 +160,7 @@ approved the set or selected an option.
 
 ## Staging
 
-After approval, stage the selected documents using the request storage semantics from `CLAUDE.md`.
+After approval, stage the selected documents using the file contract.
 
 Use `request/` exactly as defined there for the resolved document set.
 Do not invent alternate folder structures inside this skill.
@@ -179,7 +184,7 @@ input.
 - supporting documents should remain alongside it rather than being scattered
 - any missing or conflicting documents should be called out explicitly for the next skill
 - if the document set was agent-discovered, the user should have explicitly confirmed that this is the set to use
-- the request-scoped structure should satisfy the local contract from `CLAUDE.md`
+- the request-scoped structure should satisfy the file contract
 
 ## Validation Gates
 
@@ -187,8 +192,8 @@ Do not proceed or claim completion if any of these fail:
 
 - required user confirmation is missing
 - the selected set still has unresolved identity conflicts
-- the staged documents are not stored under the local request structure
-- files have been written into a loose unstructured area outside the local request structure
+- the staged documents are not stored under the request structure
+- files have been written into a loose unstructured area outside the request structure
 
 ## Done When
 
@@ -197,7 +202,7 @@ This skill has done its job when:
 - the relevant transformation document set has been identified
 - the selected files are grouped as one approved document set
 - any required user confirmation has been obtained before generation proceeds
-- the approved set has been staged under the local request structure from `CLAUDE.md`
+- the approved set has been staged under the request structure
 - the grouped document set is clear enough for downstream review
 - the next skill can use the staged set without needing to rediscover documents
 - any missing, conflicting, or inaccessible documents are called out explicitly

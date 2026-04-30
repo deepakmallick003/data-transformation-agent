@@ -134,8 +134,15 @@
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::__S3_BUCKET__"
-      ]
+        "arn:aws:s3:::__S3_READ_BUCKET__"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "__S3_READ_OBJECT_PATH__"
+          ]
+        }
+      }
     },
     {
       "Sid": "OptionalReadOnlyS3ObjectAccess",
@@ -144,8 +151,9 @@
         "s3:GetObject"
       ],
       "Resource": [
-        "arn:aws:s3:::__S3_BUCKET__/*"
+        "arn:aws:s3:::__S3_READ_BUCKET__/__S3_READ_OBJECT_PATH__"
       ]
     }
   ]
 }
+

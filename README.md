@@ -6,9 +6,31 @@ Production-ready Claude Agent SDK + Amazon Bedrock AgentCore project template.
 
 - Skills under `.claude/skills/` — agent-specific instructions and task behavior
 - Metadata under `data/metadata/` — schemas, source-layout notes, and reference material
-- Test fixtures under `data/test-data/` — sample inputs and reference material for simulation and validation
 
 All runtime code (`agent/`, `tools/`, `main.py`) is standardized and should not be modified.
+
+## Architecture
+
+For the high-level architecture diagram, see
+[ARCHITECTURE.md](./ARCHITECTURE.md).
+
+## Runtime Control
+
+The main runtime control points are:
+
+- `CLAUDE.md` defines the stable file contract and runtime policy.
+- `agent/agent_app.py` resolves request-specific values such as `request_id`, read root, and write root, then fills the prompt template.
+- `tools/s3_tools.py` owns the S3 read, write, and local fallback logic.
+- `config/settings.py` holds shared agent/runtime config resolution.
+- `config/deployment.py` holds deployment-time helper and rendering logic.
+- `.env` values control tool enablement, S3 bucket/prefix selection, and whether scoped S3 write IAM is rendered.
+- `scripts/deploy_agentcore.py` plus `config/templates/agentcore/agentcore-execution-permissions.template.json` control deployment-time IAM scope.
+
+For most projects, customization should happen mainly in:
+
+- `.claude/skills/`
+- `data/metadata/`
+- `.env` values derived from `.env.example`
 
 ## Enabled Tools
 
@@ -45,9 +67,17 @@ Replace `"user query"` with the prompt you want to test.
 
 ## Request Storage
 
-`agent/agent_app.py` owns the request-storage contract.
+The runtime uses the request-storage contract defined by `CLAUDE.md` and resolved by `tools/s3_tools.py`.
 
-Local request storage is:
+Primary request storage is:
+
+```text
+s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>results/<request_id>/
+├── request/
+└── deliverables/
+```
+
+If S3 write is not configured or is unavailable at runtime, files fall back to:
 
 ```text
 results/<request_id>/

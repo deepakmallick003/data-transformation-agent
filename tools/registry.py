@@ -6,7 +6,7 @@ loaded:
 
     AGENT_TOOLS=athena                     # Athena SQL only
     AGENT_TOOLS=knowledge_base             # Bedrock KB only
-    AGENT_TOOLS=s3                         # S3 read-only only
+    AGENT_TOOLS=s3                         # S3 source reads + request-scoped storage
     AGENT_TOOLS=athena,knowledge_base,s3    # all three
     AGENT_TOOLS=                           # no external tools (file-system only)
 

@@ -22,3 +22,4 @@ __OPTIONAL_ENV_BLOCK__
 EXPOSE 8080
 
 CMD ["python", "__ENTRYPOINT__"]
+

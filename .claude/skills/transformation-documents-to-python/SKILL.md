@@ -15,12 +15,19 @@ This skill is about:
 - extracting mappings, rules, dependencies, validations, and rejection logic
 - identifying implementation decisions that still require user choice
 - choosing a deterministic Python implementation shape only after the choice boundary is resolved
-- generating grounded code and related runtime artifacts using the local storage contract from `CLAUDE.md`
+- generating grounded code and related runtime artifacts
+
+## Storage Note
+
+- `CLAUDE.md` defines the file contract.
+- Keep staged source files under `request/`.
+- Keep generated outputs under `deliverables/`.
+- Do not redefine bucket names, prefixes, or the root request layout in this skill.
 
 Do not invent business logic that the documents do not support.
 Do not stop at a raw script if the output would be hard to run, review, or test.
-Do not define alternate storage policy here. Use the local storage rules from
-`CLAUDE.md` and the relevant metadata such as `s3_structure.md`.
+Do not define alternate storage policy here. Use the file contract and the relevant metadata such
+as `s3_structure.md`.
 
 ## Use This Skill When
 
@@ -128,7 +135,7 @@ Do not invent a custom architecture when one of these profiles is sufficient.
 11. Add the supporting run guidance needed to make the output usable.
 12. Generate supporting configuration artifacts only when the document set or chosen profile implies they are needed.
 13. Make assumptions visible in comments or a short module docstring instead of burying them in logic.
-14. Store the generated outputs using the local storage contract from `CLAUDE.md`.
+14. Store the generated outputs using the file contract.
 15. Package the generated bundle when the workflow or user would benefit from a handoff-ready artifact.
 
 Prefer a clear working implementation over a large speculative framework.
@@ -168,8 +175,8 @@ Before completing the skill, verify all of the following:
 - the document set was approved for generation
 - required user design choices were resolved, or unattended mode was explicitly enabled
 - the selected implementation profile matches the request and documents
-- the generated files are stored under the local request structure from `CLAUDE.md`
-- files were not dumped loosely into an unstructured location outside the local request structure
+- the generated files are stored under the request structure
+- files were not dumped loosely into an unstructured location outside the request structure
 - the generated code passed the feasible validation checks
 - the support files accurately describe assumptions and gaps
 
@@ -242,7 +249,7 @@ should be explained in the generated `README.md`, which should distinguish:
 
 ## Output Handling
 
-Write generated outputs using the local storage contract from `CLAUDE.md`.
+Write generated outputs using the file contract.
 Do not define a competing output layout in this skill.
 
 For this skill:
@@ -251,7 +258,7 @@ For this skill:
 - staged source documents remain under `request/`
 - if packaging is required, the package should reflect the deliverables exactly
 
-Keep the output paths deterministic within the local request structure so downstream steps can reference them reliably.
+Keep the output paths deterministic within the request structure so downstream steps can reference them reliably.
 
 ## Supporting Files
 
@@ -361,9 +368,9 @@ This skill has done its job when:
 - any required design choices have been resolved or explicitly defaulted under unattended mode
 - the generated Python reflects the documented mappings and rules
 - assumptions and unresolved gaps are visible instead of hidden
-- the generated artifacts live under the local request structure from `CLAUDE.md`
+- the generated artifacts live under the request structure
 - any needed environment template is included without exposing secrets
 - the output is structured so another engineer can run and test it
 - a single bundled artifact is produced when handoff packaging is useful
-- the workflow has not violated any local storage rule
+- the workflow has not violated any request storage rule
 - another engineer can see how the code connects back to the transformation documents

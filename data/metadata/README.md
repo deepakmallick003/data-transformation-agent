@@ -16,7 +16,7 @@ Store example transformation document sets under `data/test-data/` instead.
 
 ## S3
 
-- `s3_structure.md` — bucket layout, key prefixes, file formats
+- `s3_structure.md` — S3 read layout plus primary write and local fallback layout
 
 ## Other source descriptors
 
