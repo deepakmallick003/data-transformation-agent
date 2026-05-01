@@ -35,22 +35,22 @@ Look for:
 
 ## Tool Use
 
-- use normal local `Write` only for local request-scoped files when that is sufficient
+- use normal local `Write` for local output when that is sufficient or when the user explicitly asks for a specific folder inside the local workspace
 - use `write_request_s3_file` when deliverables must be tool-managed, mirrored to S3, or written as S3-only artifacts
 - do not invent raw bucket paths or raw S3 prefixes in this skill
 
 ## Storage Rules
 
-- `CLAUDE.md` defines the file contract
-- staged source files remain under `request/`
-- generated outputs belong under `deliverables/`
+- staged source files remain under `raw/`
+- generated outputs belong under `processed/`
 - external tool writes are allowed in this skill only for request-scoped deliverables
-- when using `write_request_s3_file` for generated artifacts, set `folder="deliverables"`
+- when using `write_request_s3_file` for generated artifacts, set `folder="processed"`
 - use `storage_mode="local"` by default
 - override to `storage_mode="mirror"` when the user wants both local and S3 copies
 - override to `storage_mode="s3"` only when the user wants S3-only persistence or the workflow clearly requires it
-- use a small `relative_path` only when it helps group related deliverables such as `handoff/` or `tests/`
-- do not promise arbitrary user-local destinations unless a dedicated tool exists for that destination
+- use `relative_path` to place files into a specific subdirectory inside the managed `processed/` location, such as `handoff/` or `tests/`
+- if the user explicitly asks for a specific local repo/workspace directory, use `Write` for that exact local path
+- do not promise destinations outside the accessible local workspace or outside the configured agent-scoped S3 write area
 
 ## Stages
 
@@ -87,7 +87,7 @@ If unattended mode is explicitly enabled, choose the lightest credible option an
 
 ### Stage 4: Generate Deliverables
 
-Create the smallest credible set of deliverables under `deliverables/`.
+Create the smallest credible set of deliverables under `processed/`.
 
 Usually include:
 
@@ -117,7 +117,7 @@ If validation fails, fix the code before finishing.
 
 If the user needs a handoff bundle, package the generated deliverables exactly as staged.
 
-- keep the archive aligned with `deliverables/`
+- keep the archive aligned with `processed/`
 - exclude transient artifacts such as `__pycache__`
 - include supporting files that are needed to run or review the output
 
@@ -149,6 +149,6 @@ This skill is complete when:
 
 - the source set was valid for generation
 - required user choices were resolved, or unattended mode was explicitly allowed
-- deliverables were written under `deliverables/`
+- deliverables were written under `processed/`
 - generated code passed the feasible validation checks
 - assumptions and missing operational details are described clearly in the support files

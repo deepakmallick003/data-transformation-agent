@@ -55,16 +55,16 @@ async def main(payload: dict | None = None):
 
     user_query = payload["query"]
     project_root = Path(__file__).parent.parent
-    request_dir = project_root / "results" / request_id / "request"
-    deliverables_dir = project_root / "results" / request_id / "deliverables"
+    raw_dir = project_root / "results" / "raw" / request_id
+    processed_dir = project_root / "results" / "processed" / request_id
 
     claude_md_path = project_root / "CLAUDE.md"
     project_context = (
         claude_md_path.read_text(encoding="utf-8") if claude_md_path.exists() else ""
     )
 
-    request_dir.mkdir(parents=True, exist_ok=True)
-    deliverables_dir.mkdir(parents=True, exist_ok=True)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    processed_dir.mkdir(parents=True, exist_ok=True)
 
     # Build only the tools declared in AGENT_TOOLS
     mcp_servers, allowed_tools = build_enabled_tools(request_id)
@@ -73,8 +73,8 @@ async def main(payload: dict | None = None):
         system_prompt=(
             "You are HMRC Data Transformation Agent.\n\n"
             f"IMPORTANT: This request has ID: {request_id}\n"
-            f"- External tool output must be saved to results/{request_id}/request/\n"
-            f"- Processed output must be saved to results/{request_id}/deliverables/\n\n"
+            f"- External tool output must be saved to results/raw/{request_id}/\n"
+            f"- Processed output must be saved to results/processed/{request_id}/\n\n"
             f"{project_context}\n"
         ),
         allowed_tools=allowed_tools,

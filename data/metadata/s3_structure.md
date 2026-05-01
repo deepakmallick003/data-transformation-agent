@@ -22,9 +22,11 @@ s3://<S3_READ_BUCKET>/<S3_READ_PREFIX>
 Agent-produced request files are stored under the configured S3 write bucket and prefix.
 
 ```text
-s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>/<agent_name>/results/<request_id>/
-├── request/
-└── deliverables/
+s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>/<agent_name>/results/
+├── raw/
+│   └── <request_id>/
+└── processed/
+    └── <request_id>/
 ```
 
 ## Local Fallback
@@ -32,7 +34,9 @@ s3://<S3_WRITE_BUCKET>/<S3_WRITE_PREFIX>/<agent_name>/results/<request_id>/
 If S3 write is not configured or is unavailable at runtime, request files fall back to local storage.
 
 ```text
-results/<request_id>/
-├── request/
-└── deliverables/
+results/
+├── raw/
+│   └── <request_id>/
+└── processed/
+    └── <request_id>/
 ```

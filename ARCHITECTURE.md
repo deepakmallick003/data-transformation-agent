@@ -37,7 +37,7 @@
 │ • request understanding                                              │
 │ • document resolution                                                │
 │ • transformation generation                                          │
-│ • skill-level control of filenames under request/ and deliverables/  │
+│ • skill-level control of filenames under raw/ and processed/         │
 └──────────────────────────────────────────────────────────────────────┘
                                    │
                                    ▼
@@ -57,7 +57,7 @@
 ┌──────────────────────────────────────────────────────────────────────┐
 │                       EXTERNAL DATA AND OUTPUTS                      │
 │ • Read sources from the configured S3 read location                  │
-│ • Write request-scoped files under request/ and deliverables/        │
+│ • Write request-scoped files under raw/ and processed/               │
 │ • Fall back to local results when S3 write is unavailable            │
 │ • Exact storage layouts live in data/metadata/s3_structure.md        │
 └──────────────────────────────────────────────────────────────────────┘

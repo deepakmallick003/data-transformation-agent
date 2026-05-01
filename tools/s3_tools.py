@@ -1,4 +1,4 @@
-"""S3 tools for source reads plus optional request-scoped artifact writes.
+"""S3 tools for source reads plus optional request-scoped raw/processed writes.
 
 Required environment variables:
     AWS_REGION             AWS region (default: us-east-1)
@@ -66,7 +66,7 @@ def _relative_path(relative_path: str) -> str:
         return ""
     parts = Path(raw).parts
     if any(part in {"..", "."} for part in parts):
-        raise ValueError("relative_path must stay within the request-scoped folder")
+        raise ValueError("relative_path must stay within the request-scoped result folder")
     return "/".join(parts)
 
 
@@ -79,7 +79,7 @@ def _storage_mode(requested_mode: str) -> str:
 
 def _s3_result_root(request_id: str) -> str:
     base_prefix = _clean_prefix(_env("S3_WRITE_PREFIX", "agents"))
-    parts = [part for part in [base_prefix, _agent_name(), "results", request_id] if part]
+    parts = [part for part in [base_prefix, _agent_name(), "results"] if part]
     return "/".join(parts)
 
 
@@ -87,7 +87,7 @@ def _s3_result_key(request_id: str, folder: str, relative_path: str, filename: s
     safe_name = Path(filename or "").name
     if not safe_name:
         raise ValueError("filename must not be empty")
-    path_parts = [_s3_result_root(request_id), folder]
+    path_parts = [_s3_result_root(request_id), folder, request_id]
     nested = _relative_path(relative_path)
     if nested:
         path_parts.append(nested)
@@ -99,7 +99,7 @@ def _local_result_file(request_id: str, folder: str, relative_path: str, filenam
     safe_name = Path(filename or "").name
     if not safe_name:
         raise ValueError("filename must not be empty")
-    path = Path("results") / request_id / folder
+    path = Path("results") / folder / request_id
     nested = _relative_path(relative_path)
     if nested:
         path /= nested
@@ -278,7 +278,7 @@ def build(request_id: str) -> ToolBundle:
 
     @tool(
         "write_request_s3_file",
-        "Store a request-scoped text file locally, in S3, or both. Use folder=request or deliverables and choose storage_mode=local, s3, or mirror.",
+        "Store a request-scoped text file locally, in S3, or both. Use folder=raw or processed and choose storage_mode=local, s3, or mirror.",
         {
             "folder": str,
             "filename": str,
@@ -293,12 +293,12 @@ def build(request_id: str) -> ToolBundle:
         content = args.get("content", "")
         relative_path = args.get("relative_path", "")
 
-        if folder not in {"request", "deliverables"}:
+        if folder not in {"raw", "processed"}:
             return {
                 "content": [
                     {
                         "type": "text",
-                        "text": "Error: folder must be either 'request' or 'deliverables'",
+                        "text": "Error: folder must be either 'raw' or 'processed'",
                     }
                 ],
                 "isError": True,
@@ -330,7 +330,7 @@ def build(request_id: str) -> ToolBundle:
                     "content": [
                         {
                             "type": "text",
-                            "text": f"Error writing local request file: {exc}",
+                        "text": f"Error writing local result file: {exc}",
                         }
                     ],
                     "isError": True,
@@ -393,7 +393,7 @@ def build(request_id: str) -> ToolBundle:
                             "content": [
                                 {
                                     "type": "text",
-                                    "text": f"Error writing S3 request file: {exc}",
+                        "text": f"Error writing S3 result file: {exc}",
                                 }
                             ],
                             "isError": True,

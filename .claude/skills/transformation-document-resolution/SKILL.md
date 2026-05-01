@@ -29,22 +29,24 @@ Read only the inputs needed to identify the correct set:
 
 ## Tool Use
 
-- use `list_s3_objects` to discover candidate files in configured S3 sources
-- use `read_s3_object` to inspect selected S3 files
-- use `write_request_s3_file` only when you need request-scoped staged output to be tool-managed
+- if the source material is already in the request, work from that directly and stage it under `raw/`
+- if you need to discover source files in configured S3 sources, use `list_s3_objects` to find candidates and `read_s3_object` to inspect them
+- when staged files must be written through the storage tool, use `write_request_s3_file`
+- if the user explicitly asks for a specific folder inside the local workspace during local testing, use normal `Write` for that local folder
 - do not invent raw bucket paths or raw S3 prefixes in this skill
 
 ## Storage Rules
 
-- `CLAUDE.md` defines the file contract
-- stage approved source files under `request/`
+- stage source material under `raw/` as soon as it is available to the agent
 - external tool writes are allowed in this skill only for request-scoped staging
-- when staging with `write_request_s3_file`, set `folder="request"`
+- when staging with `write_request_s3_file`, set `folder="raw"`
 - use `storage_mode="local"` by default
 - override to `storage_mode="mirror"` when the user wants both local and S3 copies
 - override to `storage_mode="s3"` only when the user wants S3-only persistence or the workflow clearly requires it
-- use a small `relative_path` only when it helps keep related source files grouped
-- do not promise arbitrary user-local destinations unless a dedicated tool exists for that destination
+- use `relative_path` to place staged files into a specific subdirectory inside the managed `raw/` location
+- if the user explicitly asks for a specific local repo/workspace directory, use `Write` for that exact local path
+- do not promise destinations outside the accessible local workspace or outside the configured agent-scoped S3 write area
+- approval is required before code generation handoff, not before raw staging
 
 ## Stages
 
@@ -57,7 +59,18 @@ Search in this order unless the user gives a better instruction:
 3. metadata that narrows the search space
 4. permitted external S3 sources using `list_s3_objects`, then `read_s3_object` on shortlisted files
 
-### Stage 2: Group
+### Stage 2: Stage Raw Evidence
+
+Store every source artifact actually used during resolution under `raw/`, whether it came from the user or an external source.
+
+- preserve original filenames where practical
+- use a small relative subpath when helpful, such as `user-input/`, `uploads/`, or `source-docs/`
+- if you use `write_request_s3_file`, explicitly choose `storage_mode`
+
+Raw staging is for traceability of what was supplied or retrieved during the request.
+It does not mean the document set is approved for code generation.
+
+### Stage 3: Group
 
 Group the smallest complete set that can credibly support implementation.
 
@@ -69,7 +82,7 @@ Usually keep together:
 - mappings or rule supplements
 - validation or operational notes
 
-### Stage 3: Validate
+### Stage 4: Validate
 
 Check:
 
@@ -79,21 +92,12 @@ Check:
 - conflicting versions
 - whether the files really belong together
 
-### Stage 4: Confirm
+### Stage 5: Confirm
 
 If the set was discovered externally rather than supplied directly by the user, require explicit
 user approval before handoff to code generation.
 
 If confirmation is required, stop after presenting the candidate set.
-
-### Stage 5: Stage
-
-After approval, stage the selected set into `request/`.
-
-- preserve original filenames where practical
-- keep grouped files together with a small relative subpath when helpful, such as `source-docs/`
-- if you use the storage tool, explicitly choose `storage_mode` instead of relying on inference
-- do not invent a separate storage layout outside the file contract
 
 ### Stage 6: Handoff
 
@@ -126,6 +130,6 @@ When you need user input, use this format:
 This skill is complete when:
 
 - the right transformation document set has been identified
+- the source material used during resolution has been staged under `raw/`
 - any required user approval has been obtained
-- the approved files are staged under `request/`
 - unresolved gaps or conflicts are called out clearly for the next skill

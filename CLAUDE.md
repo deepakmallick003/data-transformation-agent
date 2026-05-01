@@ -24,10 +24,10 @@ Tools are opt-in via the `AGENT_TOOLS` environment variable. Add only the tools 
 1. Load the matching skill(s) for the user's request.
 2. Read any referenced metadata or sample data files.
 3. Use the appropriate tool(s) to retrieve or query data.
-4. Save all generated artifacts under the request-scoped folder.
+4. Save all generated artifacts under the request-scoped result folders.
 5. Return a clear, concise answer with file references.
 
 ## File Contract
 
-- External tool output: `results/{request_id}/request`
-- Processed output: `results/{request_id}/deliverables`
+- External tool output: `results/raw/{request_id}/`
+- Processed output: `results/processed/{request_id}/`
