@@ -5,7 +5,7 @@ import argparse
 import json
 import subprocess
 
-from deploy_agentcore import load_env, resolve_agentcore
+from deploy_agentcore import agentcore_bin, load_env
 
 
 def main() -> None:
@@ -16,7 +16,7 @@ def main() -> None:
     parser.add_argument("--agent", default=None, help="Optional deployed agent name")
     args = parser.parse_args()
 
-    cmd = [resolve_agentcore(), "invoke"]
+    cmd = [agentcore_bin(), "invoke"]
     if args.dev:
         cmd.append("--dev")
     if args.agent:

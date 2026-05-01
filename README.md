@@ -19,10 +19,8 @@ For the high-level architecture diagram, see
 The main runtime control points are:
 
 - `CLAUDE.md` defines the stable file contract and runtime policy.
-- `agent/agent_app.py` resolves request-specific values such as `request_id`, read root, and write root, then fills the prompt template.
+- `agent/agent_app.py` creates the request id, loads the project prompt context, and starts the Claude runtime.
 - `tools/s3_tools.py` owns the S3 read, write, and local fallback logic.
-- `config/settings.py` holds shared agent/runtime config resolution.
-- `config/deployment.py` holds deployment-time helper and rendering logic.
 - `.env` values control tool enablement, S3 bucket/prefix selection, and whether scoped S3 write IAM is rendered.
 - `scripts/deploy_agentcore.py` plus `config/templates/agentcore/agentcore-execution-permissions.template.json` control deployment-time IAM scope.
 
@@ -67,29 +65,25 @@ Replace `"user query"` with the prompt you want to test.
 
 ## Request Storage
 
-The runtime uses the request-storage contract defined by `CLAUDE.md` and resolved by `tools/s3_tools.py`.
+The runtime uses the request-storage contract defined by `CLAUDE.md` and implemented by `tools/s3_tools.py`.
+For the exact S3 and local storage layouts, see [data/metadata/s3_structure.md](./data/metadata/s3_structure.md).
 
-Primary request storage is:
+## Storage Policy Matrix
 
-```text
-s3://<S3_WRITE_BUCKET>/agents/<agent_name>/results/<request_id>/
-├── request/
-└── deliverables/
-```
+Use this policy when deciding where request-scoped artifacts should go:
 
-If S3 write is not configured or is unavailable at runtime, files fall back to:
-
-```text
-results/<request_id>/
-├── request/
-└── deliverables/
-```
+| Scenario | Default behavior | Extra persistence allowed? | Notes |
+| --- | --- | --- | --- |
+| Local development run | Store under `results/<request_id>/` | Yes, if a skill explicitly calls an external write tool | Local `Write` stays in the repo workspace |
+| Deployed AgentCore run | Store under `results/<request_id>/` inside the runtime workspace | Yes, if a skill explicitly calls an external write tool | Runtime-local files are not the user's laptop/project folder |
+| Skill explicitly requests S3 mirroring | Keep the local request-scoped result layout | Yes, mirror through the S3 write tool | Exact S3 layout is defined in `data/metadata/s3_structure.md` |
+| User asks for a custom local/external destination | Do not assume it is possible | Only if a dedicated tool exists for that destination | Prompt text alone cannot make deployed `Write` target the user's machine |
 
 ## Adding a New Skill
 
 1. Create `.claude/skills/<domain>/SKILL.md`
 2. Add any referenced metadata files under `data/metadata/`
-3. Keep storage rules aligned with `agent/agent_app.py` and `CLAUDE.md`
+3. Keep storage rules aligned with `CLAUDE.md` and the relevant tool behavior
 
 ## Deploy to AgentCore
 

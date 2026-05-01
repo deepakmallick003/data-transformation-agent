@@ -16,15 +16,9 @@ import logging
 import sys
 import uuid
 from pathlib import Path
-from typing import Any
 
 from bedrock_agentcore import BedrockAgentCoreApp
-from claude_agent_sdk import (
-    AssistantMessage,
-    ClaudeAgentOptions,
-    ClaudeSDKClient,
-    TextBlock,
-)
+from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 
 # Ensure project root is on the path so tool imports resolve correctly
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -34,9 +28,7 @@ import tools.athena_tools  # noqa: F401
 import tools.knowledge_base_tools  # noqa: F401
 import tools.s3_tools  # noqa: F401
 
-from config.settings import resolve_agent_name
 from tools.registry import build_enabled_tools
-from tools.s3_tools import resolve_request_storage
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,27 +39,6 @@ logging.getLogger("claude_agent_sdk").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 app = BedrockAgentCoreApp()
-PROMPT_TEMPLATE_PATH = (
-    Path(__file__).parent.parent / "config" / "templates" / "prompts" / "agent_prompt.md"
-)
-
-
-def render_system_prompt(
-    *,
-    agent_label: str,
-    request_id: str,
-    resolved_read_root: str,
-    resolved_write_root: str,
-    project_context: str,
-) -> str:
-    template = PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
-    return template.format(
-        agent_label=agent_label,
-        request_id=request_id,
-        resolved_read_root=resolved_read_root,
-        resolved_write_root=resolved_write_root,
-        project_context=project_context,
-    )
 
 
 @app.entrypoint
@@ -84,51 +55,47 @@ async def main(payload: dict | None = None):
 
     user_query = payload["query"]
     project_root = Path(__file__).parent.parent
-    agent_name = resolve_agent_name()
-    agent_label = agent_name.replace("-", " ").replace("_", " ").title()
-    request_storage = resolve_request_storage(agent_name, request_id)
+    request_dir = project_root / "results" / request_id / "request"
+    deliverables_dir = project_root / "results" / request_id / "deliverables"
 
     claude_md_path = project_root / "CLAUDE.md"
     project_context = (
         claude_md_path.read_text(encoding="utf-8") if claude_md_path.exists() else ""
     )
 
+    request_dir.mkdir(parents=True, exist_ok=True)
+    deliverables_dir.mkdir(parents=True, exist_ok=True)
+
     # Build only the tools declared in AGENT_TOOLS
     mcp_servers, allowed_tools = build_enabled_tools(request_id)
 
-    system_prompt = render_system_prompt(
-        agent_label=agent_label,
-        request_id=request_id,
-        resolved_read_root=request_storage.read_location.uri,
-        resolved_write_root=request_storage.result_root_uri or "not configured",
-        project_context=project_context,
+    options = ClaudeAgentOptions(
+        system_prompt=(
+            "You are HMRC Data Transformation Agent.\n\n"
+            f"IMPORTANT: This request has ID: {request_id}\n"
+            f"- External tool output must be saved to results/{request_id}/request/\n"
+            f"- Processed output must be saved to results/{request_id}/deliverables/\n\n"
+            f"{project_context}\n"
+        ),
+        allowed_tools=allowed_tools,
+        mcp_servers=mcp_servers,
+        setting_sources=["project"],
+        cwd=str(project_root),
+        max_turns=30,
     )
 
-    options_kwargs: dict[str, Any] = {
-        "system_prompt": system_prompt,
-        "allowed_tools": allowed_tools,
-        "mcp_servers": mcp_servers,
-        "setting_sources": ["project"],
-        "cwd": str(project_root),
-        "max_turns": 30,
-    }
-    options = ClaudeAgentOptions(**options_kwargs)
-
-    logger.info(
-        "Starting request_id=%s agent_name=%s write_root=%s local_fallback=%s tools=%s",
-        request_id,
-        agent_name,
-        request_storage.result_root_uri or "local-results-only",
-        request_storage.local_result_root.as_posix(),
-        allowed_tools,
-    )
+    logger.info("Starting request_id=%s tools=%s", request_id, allowed_tools)
     async with ClaudeSDKClient(options=options) as client:
         await client.query(user_query)
         async for message in client.receive_response():
-            if isinstance(message, AssistantMessage):
-                blocks = message.content
+            if hasattr(message, "content"):
+                blocks = (
+                    message.content
+                    if isinstance(message.content, list)
+                    else [message.content]
+                )
                 for block in blocks:
-                    if isinstance(block, TextBlock):
+                    if hasattr(block, "text"):
                         yield block.text
 
 

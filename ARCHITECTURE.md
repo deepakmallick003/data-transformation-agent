@@ -17,7 +17,7 @@
 │ • agent/agent_app.py                                                 │
 │ • generates request_id                                               │
 │ • resolves enabled tools from env                                    │
-│ • resolves S3 read roots and write fallback targets for this request │
+│ • loads CLAUDE.md and starts the Claude runtime                      │
 └──────────────────────────────────────────────────────────────────────┘
                                    │
                                    ▼
@@ -26,11 +26,8 @@
 │ • CLAUDE.md                                                          │
 │   - stable runtime policy                                            │
 │   - file contract                                                    │
-│ • config/templates/prompts/agent_prompt.md                           │
 │ • request-specific prompt context                                    │
 │   - request_id                                                       │
-│   - resolved read root                                               │
-│   - resolved write root                                              │
 └──────────────────────────────────────────────────────────────────────┘
                                    │
                                    ▼
@@ -59,16 +56,10 @@
                                    ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                       EXTERNAL DATA AND OUTPUTS                      │
-│ • Read sources                                                       │
-│   - s3://<S3_READ_BUCKET>/<S3_READ_PREFIX>                           │
-│ • Request-scoped writes                                              │
-│   - s3://<S3_WRITE_BUCKET>/agents/<agent_name>/results/<request_id>/ │
-│     - request/                                                       │
-│     - deliverables/                                                  │
-│ • Local fallback                                                     │
-│   - results/<request_id>/                                            │
-│     - request/                                                       │
-│     - deliverables/                                                  │
+│ • Read sources from the configured S3 read location                  │
+│ • Write request-scoped files under request/ and deliverables/        │
+│ • Fall back to local results when S3 write is unavailable            │
+│ • Exact storage layouts live in data/metadata/s3_structure.md        │
 └──────────────────────────────────────────────────────────────────────┘
 
 
@@ -78,8 +69,6 @@
 │   - AGENT_TOOLS                                                      │
 │   - S3_READ_*                                                        │
 │   - S3_WRITE_*                                                       │
-│ • config/settings.py                                                 │
-│ • config/deployment.py                                               │
 │ • scripts/deploy_agentcore.py                                        │
 │ • config/templates/agentcore/agentcore-execution-permissions.template.json │
 │   - IAM-scoped read bucket/prefix                                    │
